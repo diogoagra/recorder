@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recorder - Assistente Local</title>
+    <meta name="color-scheme" content="light dark">
+    <!-- Tema antes de desenhar a tela. Num arquivo, e não aqui: a política de
+         conteúdo da janela (internal/backend/csp.go) não deixa rodar script
+         escrito no HTML -->
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- Bibliotecas e fonte embutidas no app, sem CDN: o Recorder funciona sem
+         internet. Versões e origem em vendor/README.md -->
+    <script src="vendor/marked.min.js"></script>
+    <script src="vendor/purify.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Barra lateral: gravação e lista de reuniões -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <!-- Workspace: separa as reuniões (ex: um por emprego) -->
+                <div class="workspace-bar">
+                    <label for="workspaceSelect" class="workspace-label">Workspace</label>
+                    <div class="workspace-row">
+                        <div class="workspace-picker">
+                            <select id="workspaceSelect" class="workspace-select" title="Trocar de workspace"></select>
+                        </div>
+                        <button id="renameWorkspaceBtn" class="icon-btn" title="Renomear workspace">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        </button>
+                        <button id="deleteWorkspaceBtn" class="icon-btn danger-icon" title="Apagar workspace">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sidebar-title">
+                    <h2>Reuniões</h2>
+                    <div class="sidebar-title-actions">
+                        <button id="importAudioBtn" class="icon-btn" title="Importar áudio (ex: gravado no celular)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </button>
+                        <button id="newSessionBtn" class="icon-btn" title="Nova sessão">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="recorder">
+                    <button id="toggleRecordBtn" class="record-btn" disabled>
+                        <span class="record-icon" aria-hidden="true"></span>
+                        <span id="recordLabel">Gravar</span>
+                        <span id="recordTimer" class="record-timer"></span>
+                    </button>
+                    <span id="recordingStatusText" class="status-text">Carregando...</span>
+                    <!-- Trabalho da IA em andamento, quando a tela de uma reunião (que tem o aviso no cabeçalho) não está aberta -->
+                    <span id="backgroundStatus" class="status-text" hidden></span>
+                    <canvas id="audioVisualizer" width="240" height="32" style="display: none;"></canvas>
+                </div>
+
+                <!-- Intérprete: segurando o botão (ou ⌃⌥Espaço), a reunião ouve em inglês, com a sua voz, o que você diz em português -->
+                <div id="interpreterPanel" class="interpreter" hidden>
+                    <div class="interpreter-row">
+                        <label class="interpreter-toggle" title="Liga o repasse do seu microfone para o BlackHole, o microfone do Meet">
+                            <input type="checkbox" id="interpreterToggle">
+                            <span>Intérprete PT → EN</span>
+                        </label>
+                        <button id="interpreterSetupBtn" type="button" class="link-btn">configurar</button>
+                    </div>
+                    <button id="pttBtn" type="button" class="ptt-btn" hidden>
+                        <span class="ptt-dot" aria-hidden="true"></span>
+                        <span>Segure para falar em inglês</span>
+                    </button>
+                    <small id="interpreterState" class="interpreter-state"></small>
+                </div>
+
+                <input type="search" id="sessionSearch" class="session-search" placeholder="Buscar reuniões" autocomplete="off">
+            </div>
+            <ul id="sessionList" class="session-list"></ul>
+            <!-- Rodapé: o que vale para o app todo, acessível em qualquer tela -->
+            <footer class="sidebar-footer">
+                <button id="aboutBtn" type="button" class="link-btn">Sobre o Recorder</button>
+                <div class="footer-actions">
+                    <button id="openDataDirBtn" class="icon-btn" title="Abrir pasta de áudios e banco de dados">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </button>
+                    <button id="settingsBtn" class="icon-btn" title="Configurações">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                    <button id="themeToggleBtn" class="icon-btn" title="Usar o tema escuro"></button>
+                </div>
+            </footer>
+        </aside>
+
+        <!-- Main Content para o Chat -->
+        <main class="chat-area">
+            <!-- Tela de Boas-vindas -->
+            <div id="welcomeView" class="welcome-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; flex: 1;">
+                <h1 style="font-size: 2.5em; margin-bottom: 10px;">Bem-vindo ao Recorder 👋</h1>
+                <p style="color: var(--text-secondary); max-width: 400px; margin: 20px 0; font-size: 1.1em; line-height: 1.5;">O seu assistente de IA local para transcrição e resumos. Crie uma nova sessão para começar a gravar, importe um áudio gravado em outro lugar (como o celular) ou selecione uma sessão no menu lateral.</p>
+
+                <div class="welcome-actions">
+                    <button id="welcomeNewSessionBtn" class="primary-btn welcome-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Criar Nova Sessão
+                    </button>
+                    <button id="welcomeImportAudioBtn" class="secondary-btn welcome-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Importar Áudio
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sessão aberta: resumo, transcrição, chat e notas em abas -->
+            <div id="mainSessionView" class="session-view" style="display: none;">
+                <header class="chat-header" style="flex-direction: column; justify-content: center; align-items: center;">
+                    <h1>Recorder - Assistente Local</h1>
+                    <div id="ollamaStatusIndicator" style="display: none; align-items: center; gap: 8px; font-size: 0.85em; color: var(--text-secondary); margin-top: 4px;">
+                        <span id="ollamaStatusText">Processando...</span>
+                        <div class="typing-indicator" style="padding: 0; background: none; box-shadow: none;">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Nome sugerido pela IA para a reunião aberta: uma faixa, para não interromper quem está no meio de outra coisa -->
+                <div id="nameSuggestion" class="name-suggestion" hidden>
+                    <span class="name-suggestion-text">Sugestão de nome: <strong id="nameSuggestionName"></strong></span>
+                    <button type="button" id="nameSuggestionAcceptBtn" class="primary-btn">Aceitar</button>
+                    <button type="button" id="nameSuggestionEditBtn" class="secondary-btn">Editar</button>
+                    <button type="button" id="nameSuggestionDismissBtn" class="secondary-btn">Ignorar</button>
+                </div>
+
+                <div class="session-bar">
+                    <div class="tabs" role="tablist">
+                        <button type="button" class="tab" role="tab" data-tab="summary">Resumo</button>
+                        <button type="button" class="tab" role="tab" data-tab="transcript">Transcrição</button>
+                        <button type="button" class="tab" role="tab" data-tab="chat">Chat</button>
+                        <button type="button" class="tab" role="tab" data-tab="notes">Notas</button>
+                    </div>
+                    <div class="session-actions">
+                        <button id="exportSessionBtn" class="icon-btn" title="Exportar resumo para um arquivo">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </button>
+                        <button id="moveSessionBtn" class="icon-btn" title="Mover para outro workspace" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><polyline points="12 10 15 13 12 16"></polyline><line x1="8" y1="13" x2="15" y2="13"></line></svg>
+                        </button>
+                        <button id="renameSessionBtn" class="icon-btn" title="Renomear sessão">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        </button>
+                        <button id="reprocessSessionBtn" class="icon-btn" title="Reprocessar áudio (refaz a transcrição)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                        </button>
+                        <button id="deleteSessionBtn" class="icon-btn danger-icon" title="Apagar sessão">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Fica fora das abas: os tempos do resumo, da transcrição e do chat tocam aqui -->
+                <div id="audioBar" class="audio-bar" style="display: none;">
+                    <audio id="sessionAudioPlayer" controls></audio>
+                </div>
+
+                <section id="summaryTab" class="tab-panel" role="tabpanel">
+                    <div class="panel-content">
+                        <div id="speakerSuggestions" class="summary-section" style="display: none;">
+                            <h4>Quem é quem?</h4>
+                            <p class="summary-hint">Nomes tirados da própria conversa. Quando as pistas bastam, o Recorder já dá o nome à voz e mostra aqui o trecho que o comprova; nos outros casos, pede a sua confirmação. A voz com nome fica guardada para as próximas reuniões.</p>
+                            <ul id="speakerSuggestionsList"></ul>
+                        </div>
+
+                        <div id="tasksSection" class="summary-section" style="display: none;">
+                            <h4>Tarefas</h4>
+                            <ul id="tasksList"></ul>
+                        </div>
+
+                        <div class="summary-header">
+                            <h3>Resumo da sessão</h3>
+                            <button id="regenerateSummaryBtn" class="icon-btn" title="Refazer Resumo" style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                                Refazer
+                            </button>
+                        </div>
+                        <div id="sessionSummaryContent" class="summary-content"></div>
+                    </div>
+                </section>
+
+                <section id="transcriptTab" class="tab-panel" role="tabpanel" hidden>
+                    <div class="transcripts-container" id="transcriptsContainer"></div>
+                    <p id="transcriptsEmpty" class="panel-empty">Nenhuma fala transcrita ainda.</p>
+                </section>
+
+                <section id="chatTab" class="tab-panel chat-panel" role="tabpanel" hidden>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant" id="welcomeMessage">
+                            <div class="message-content">
+                                Olá! Eu sou o assistente do Recorder. Pergunte o que quiser sobre esta reunião (ou sobre todas as deste workspace, marcando a opção abaixo).
+                            </div>
+                        </div>
+                        <!-- Mensagens do chat serão injetadas aqui -->
+                    </div>
+
+                    <div class="chat-input-container">
+                        <form id="chatForm">
+                            <textarea id="chatInput" placeholder="Pergunte sobre a reunião (ex: o que ficou combinado sobre o deploy?)" rows="1"></textarea>
+                            <button type="submit" id="sendBtn" disabled>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </form>
+                        <label class="search-all">
+                            <input type="checkbox" id="searchAllSessions">
+                            Pesquisar em todas as reuniões deste workspace
+                        </label>
+                    </div>
+                </section>
+
+                <!-- Notas: o que o usuário escreve durante a reunião e as capturas de tela dela -->
+                <section id="notesTab" class="tab-panel notes-panel" role="tabpanel" hidden>
+                    <div class="notes-content">
+                        <div class="notes-header">
+                            <div class="notes-title">
+                                <h3>Notas da reunião</h3>
+                                <p class="notes-hint">Escreva à vontade durante a reunião: fica salvo com ela.</p>
+                            </div>
+                            <span id="notesSaved" class="saved-flag" aria-live="polite"></span>
+                            <button id="captureScreenBtn" type="button" class="secondary-btn capture-btn" hidden>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                Capturar tela
+                                <span id="captureShortcut" class="capture-shortcut"></span>
+                            </button>
+                        </div>
+                        <!-- Travado até as notas de uma reunião serem carregadas (app.js, loadNotes) -->
+                        <textarea id="notesInput" class="notes-input" placeholder="Pontos importantes, dúvidas, o que ficou para você fazer..." readonly></textarea>
+                        <div id="screenshotsSection" class="screenshots" hidden>
+                            <h4>Capturas de tela</h4>
+                            <ul id="screenshotsList" class="screenshot-list"></ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- Configurações: tela própria, no lugar da reunião aberta -->
+            <div id="settingsView" class="settings-view" hidden>
+                <header class="settings-header">
+                    <h1>Configurações</h1>
+                    <button id="settingsCloseBtn" type="button" class="icon-btn" title="Fechar (Esc)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </header>
+                <nav class="settings-nav" aria-label="Seções">
+                    <button type="button" data-section="settingsAI">IA do assistente</button>
+                    <button type="button" data-section="settingsRecording">Gravação</button>
+                    <button type="button" data-section="interpreterSettings" id="settingsNavInterpreter">Intérprete</button>
+                    <button type="button" data-section="settingsWorkspace">Workspace</button>
+                </nav>
+                <div class="settings-scroll">
+                    <div class="settings-content">
+                        <section id="settingsAI" class="settings-section">
+                            <div class="settings-section-head">
+                                <h2>IA do assistente</h2>
+                                <span class="saved-flag" aria-live="polite"></span>
+                            </div>
+                            <p class="settings-desc">Escreve os resumos, as tarefas, as sugestões de nomes e as respostas do chat. A correção da tradução do Intérprete é escolhida em Intérprete.</p>
+                            <label class="checkbox-row provider-option">
+                                <input type="radio" name="llmProvider" value="ollama">
+                                <span>Ollama, neste computador<br><small>O texto das reuniões não sai do computador.</small></span>
+                            </label>
+                            <label class="checkbox-row provider-option">
+                                <input type="radio" name="llmProvider" value="agy" id="agyProviderOption">
+                                <span>agy (Gemini e outros), na nuvem<br><small id="agyProviderHint">Lê reuniões longas inteiras de uma vez. O texto das reuniões é enviado ao serviço do modelo escolhido.</small></span>
+                            </label>
+                            <label class="checkbox-row provider-option">
+                                <input type="radio" name="llmProvider" value="claude" id="claudeProviderOption">
+                                <span>Claude (Claude Code), na nuvem<br><small id="claudeProviderHint">Usa o login do Claude Code e lê reuniões longas inteiras de uma vez. O texto das reuniões é enviado à Anthropic.</small></span>
+                            </label>
+                            <label class="settings-field">
+                                <span>Modelo</span>
+                                <select id="llmModelSelect" class="dialog-select">
+                                    <option value="">Carregando modelos...</option>
+                                </select>
+                            </label>
+                        </section>
+
+                        <section id="settingsRecording" class="settings-section">
+                            <div class="settings-section-head">
+                                <h2>Gravação</h2>
+                                <span class="saved-flag" aria-live="polite"></span>
+                            </div>
+                            <label class="checkbox-row">
+                                <input type="checkbox" id="systemAudioToggle">
+                                <span>Gravar também o áudio do computador<br><small>Reuniões, vídeos e tudo que estiver tocando, junto com o microfone.</small></span>
+                            </label>
+                        </section>
+
+                        <section id="interpreterSettings" class="settings-section interpreter-settings" hidden>
+                            <div class="settings-section-head">
+                                <h2>Intérprete</h2>
+                                <span class="saved-flag" aria-live="polite"></span>
+                            </div>
+                            <p class="settings-desc">Português → inglês, com a sua voz. Segurando <strong class="ptt-shortcut">⌃⌥Espaço</strong> (ou o botão na barra lateral), a reunião deixa de ouvir você e ouve, em inglês e com a sua voz, o que você disse em português. Tudo roda neste Mac.</p>
+                            <ul class="checklist">
+                                <li id="chkVirtualMic"></li>
+                                <li id="chkVoice"></li>
+                                <li id="chkSample"></li>
+                                <li class="checklist-tip">No Meet, escolha <strong>BlackHole 2ch</strong> como microfone. Com o Intérprete desligado, o Meet não ouve você: volte para o microfone normal ou ligue o Intérprete.</li>
+                            </ul>
+                            <div class="interpreter-correction">
+                                <h3>Tradução</h3>
+                                <small>O inglês é a tradução do Whisper, fiel ao que você disse. Uma IA compara com o português e corrige só o que o Whisper errou: palavras trocadas, sentido invertido ou parte da frase perdida.</small>
+                                <label class="checkbox-row provider-option">
+                                    <input type="radio" name="interpreterCorrection" value="claude" id="correctionClaudeOption">
+                                    <span>Corrigida pelo Claude Haiku (recomendado)<br><small id="correctionClaudeHint">Quase não usa memória; a frase leva ~1,5-3 s a mais. O texto de cada frase vai para a Anthropic, pelo login do Claude Code.</small></span>
+                                </label>
+                                <label class="checkbox-row provider-option">
+                                    <input type="radio" name="interpreterCorrection" value="ollama">
+                                    <span>Corrigida pelo Ollama, neste computador<br><small>~0,3 s a mais por frase, mas o modelo ocupa vários GB de memória. Com o Ollama desligado, o Claude Haiku corrige.</small></span>
+                                </label>
+                                <label class="checkbox-row provider-option">
+                                    <input type="radio" name="interpreterCorrection" value="none">
+                                    <span>Só o Whisper<br><small>A mais rápida, sem correção: às vezes troca palavras ou perde parte da frase.</small></span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section id="settingsWorkspace" class="settings-section">
+                            <div class="settings-section-head">
+                                <h2>Workspace <span class="settings-workspace-name settings-workspace"></span></h2>
+                                <span class="saved-flag" aria-live="polite"></span>
+                            </div>
+                            <p class="settings-desc">Os participantes, o glossário e as vozes conhecidas valem só para as reuniões deste workspace. Para ver os de outro, troque de workspace na barra lateral.</p>
+                            <div class="glossary">
+                                <h3>Participantes</h3>
+                                <small>Quem costuma estar nas reuniões deste workspace, um por linha, com o nome como deve aparecer. Entre parênteses, outros jeitos de chamar a pessoa. O Recorder usa a lista para descobrir pela conversa de quem é cada voz e para escrever os nomes certos na transcrição, no resumo e nas tarefas.</small>
+                                <textarea id="participantsInput" rows="6" placeholder="Maria Souza&#10;Oleksandr Petrenko (Alex, Sasha)&#10;João Lima"></textarea>
+                            </div>
+                            <div class="glossary">
+                                <h3>Glossário</h3>
+                                <small>Nomes de sistemas, clientes e siglas, um por linha. Ajuda a transcrição a escrever esses termos corretamente (os nomes dos participantes e das vozes conhecidas já entram automaticamente).</small>
+                                <textarea id="glossaryInput" rows="5" placeholder="ClickUp&#10;Replicate&#10;OKR"></textarea>
+                            </div>
+                            <div class="known-people">
+                                <h3>Vozes conhecidas</h3>
+                                <small>Pessoas que você nomeou na transcrição. O Recorder as reconhece nas próximas reuniões deste workspace.</small>
+                                <ul id="knownPeopleList"></ul>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Avisos que somem sozinhos (ex: uma falha do backend), sem interromper -->
+    <div id="toasts" class="toasts"></div>
+
+    <!-- Modais Nativos HTML5 -->
+    <dialog id="promptDialog" class="native-dialog">
+        <form method="dialog">
+            <h3 id="promptTitle">Nova Sessão</h3>
+            <p id="promptMessage">Nome da nova sessão/reunião:</p>
+            <input type="text" id="promptInput" required />
+            <div class="dialog-actions">
+                <button type="button" value="cancel" class="secondary-btn dialog-cancel">Cancelar</button>
+                <button type="submit" value="confirm" id="promptConfirmBtn" class="primary-btn">Criar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="sampleDialog" class="native-dialog calibration-dialog">
+        <form method="dialog">
+            <h3>Calibrar a sua voz</h3>
+            <div id="calibRecordStep">
+                <p>Leia o texto em voz alta, em inglês, no seu ritmo normal, como numa reunião. Quanto mais você ler, mais trechos o Recorder tem para escolher: o ideal são uns 2 minutos (mínimo 20 s). Use o mesmo microfone das reuniões, num lugar silencioso.</p>
+                <blockquote id="sampleReading" class="sample-reading"></blockquote>
+                <button type="button" id="calibLastBtn" class="link-btn calib-last" hidden>Ver as opções da última calibração</button>
+            </div>
+            <div id="calibChooseStep" hidden>
+                <p>Cada opção imita um trecho diferente da sua gravação dizendo a mesma frase em inglês. Ouça e escolha a que mais parece com você.</p>
+                <ul id="calibOptions" class="calib-options"></ul>
+            </div>
+            <p id="sampleStatus" class="sample-status"></p>
+            <audio id="calibPlayer" hidden></audio>
+            <div class="dialog-actions">
+                <button type="button" id="sampleCancelBtn" class="secondary-btn">Fechar</button>
+                <button type="button" id="sampleRecordBtn" class="primary-btn">Começar a gravar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="moveDialog" class="native-dialog">
+        <form method="dialog">
+            <h3>Mover reunião</h3>
+            <p>Para qual workspace? As pessoas que têm nome nesta reunião passam a ser reconhecidas também nas reuniões dele.</p>
+            <select id="moveWorkspaceSelect" class="dialog-select"></select>
+            <div class="dialog-actions">
+                <button type="button" value="cancel" class="secondary-btn dialog-cancel">Cancelar</button>
+                <button type="submit" value="confirm" class="primary-btn">Mover</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="confirmDialog" class="native-dialog">
+        <form method="dialog">
+            <h3 id="confirmTitle">Confirmar</h3>
+            <p id="confirmMessage">Tem certeza que deseja apagar a sessão atual?</p>
+            <div class="dialog-actions">
+                <button type="button" value="cancel" class="secondary-btn dialog-cancel">Cancelar</button>
+                <button type="submit" value="confirm" id="confirmOkBtn" class="primary-btn danger-btn">Apagar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Uma captura de tela da reunião, em tamanho grande -->
+    <dialog id="screenshotDialog" class="native-dialog screenshot-dialog">
+        <img id="screenshotImage" alt="Captura de tela">
+        <div class="dialog-actions">
+            <span id="screenshotMoment" class="screenshot-moment"></span>
+            <button type="button" id="screenshotDeleteBtn" class="secondary-btn danger-text-btn">Apagar</button>
+            <button type="button" id="screenshotRevealBtn" class="secondary-btn">Mostrar no Finder</button>
+            <button type="button" id="screenshotCloseBtn" class="primary-btn">Fechar</button>
+        </div>
+    </dialog>
+
+    <dialog id="aboutDialog" class="native-dialog about-dialog">
+        <form method="dialog">
+            <h3>Recorder <span id="aboutVersion" class="about-version"></span></h3>
+            <p>Assistente local de transcrição e resumo de reuniões.</p>
+            <p class="about-credits">
+                Desenvolvido por <strong>Diogo Agra</strong><br>
+                <a href="https://diogoagra.dev" class="about-link">diogoagra.dev</a><br>
+                <a href="mailto:diogoagra@gmail.com" class="about-link">diogoagra@gmail.com</a>
+            </p>
+            <p class="about-credits">Software livre, sob a licença MIT.</p>
+            <div class="dialog-actions">
+                <button type="submit" value="close" class="primary-btn">Fechar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="errorDialog" class="native-dialog" style="max-width: 500px; text-align: center;">
+        <h3 style="color: #ef4444;">Serviços Indisponíveis</h3>
+        <p id="errorMessage" style="margin: 20px 0;">Não foi possível conectar aos serviços locais necessários.</p>
+        <div style="text-align: left; background: var(--bg-sidebar); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 5px 0;"><strong id="llmHealthLabel">Ollama:</strong> <span id="ollamaHealth">Verificando...</span></p>
+            <p style="margin: 5px 0;"><strong>Whisper Server:</strong> <span id="whisperHealth">Verificando...</span></p>
+        </div>
+        <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 20px;">Por favor, verifique se <span id="llmHealthHelp">o Ollama está rodando na porta 11434</span> e o Whisper Server na porta <span id="whisperPort">do Recorder</span> (se outro programa estiver usando essa porta, o Recorder não consegue subir o Whisper). Reinicie o aplicativo após corrigir o problema.</p>
+        <div class="dialog-actions" style="justify-content: center;">
+            <button type="button" id="useClaudeBtn" class="secondary-btn" style="display: none;" title="O texto das reuniões passa a ser enviado à Anthropic">Usar o Claude (nuvem)</button>
+            <button type="button" id="useAgyBtn" class="secondary-btn" style="display: none;" title="O texto das reuniões passa a ser enviado ao Gemini (ou ao modelo escolhido no agy)">Usar o agy (nuvem)</button>
+            <button type="button" id="retryHealthBtn" class="primary-btn">Tentar Novamente</button>
+        </div>
+    </dialog>
+
+    <script src="app.js"></script>
+</body>
+</html>

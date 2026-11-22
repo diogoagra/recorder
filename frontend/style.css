@@ -1,0 +1,1994 @@
+/* Inter embutida no app (sem CDN; ver vendor/README.md). O arquivo é variável:
+   um por subconjunto cobre os pesos usados, de 400 a 600, como vinha do Google
+   Fonts (pedir um peso maior continua dando 600). */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url('vendor/fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url('vendor/fonts/inter-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Cores dos temas. O tema fica sempre em data-theme no <html> (o escolhido
+   pelo usuário ou, sem escolha, o do sistema; ver o script no index.html). */
+:root {
+    --bg-main: #ffffff;
+    --bg-sidebar: #f7f7f8;
+    --text-primary: #343541;
+    --text-secondary: #8e8ea0;
+    --border-color: #e5e5e5;
+    --hover-bg: #eaeaea;
+    --user-msg-bg: #f7f7f8;
+    --assistant-msg-bg: #ffffff;
+    --btn-primary: #10a37f;
+    --btn-primary-hover: #1a7f64;
+    /* Texto em destaque: momentos do áudio e links */
+    --accent-text: #10a37f;
+    /* Falas da transcrição e caixa do chat */
+    --card-bg: #ffffff;
+    --card-border: #e5e5e5;
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --dialog-bg: #ffffff;
+    --dialog-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    /* Campos de texto dos diálogos e da barra lateral */
+    --field-bg: #f7f7f8;
+    --sidebar-field-bg: #ffffff;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --danger-text: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.08);
+    --disabled-bg: #e5e5e5;
+    --disabled-text: #a3a3a3;
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: #8e8ea0;
+    /* Cor de cada pessoa na transcrição */
+    --speaker-1: #10a37f;
+    --speaker-2: #3b82f6;
+    --speaker-3: #d97706;
+    --speaker-4: #db2777;
+    --speaker-5: #8b5cf6;
+    --speaker-6: #0891b2;
+
+    /* Controles nativos (player de áudio, caixas de seleção, menus, barras de
+       rolagem) seguem o tema do app, e não o do sistema */
+    color-scheme: light;
+}
+
+/* Escuro: grafite neutro, como o claro é cinza neutro, com o mesmo verde */
+:root[data-theme="dark"] {
+    --bg-main: #212121;
+    --bg-sidebar: #181818;
+    --text-primary: #ececec;
+    --text-secondary: #a1a1a1;
+    --border-color: #303030;
+    --hover-bg: #2a2a2a;
+    --user-msg-bg: #262626;
+    --assistant-msg-bg: #212121;
+    --btn-primary: #10a37f;
+    --btn-primary-hover: #13b88f;
+    --accent-text: #2fc89a;
+    --card-bg: #262626;
+    --card-border: #2e2e2e;
+    --card-shadow: none;
+    --dialog-bg: #262626;
+    --dialog-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    --field-bg: #1b1b1b;
+    --sidebar-field-bg: #212121;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --danger-text: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.1);
+    --disabled-bg: #2f2f2f;
+    --disabled-text: #6e6e6e;
+    --scrollbar-thumb: #4a4a4a;
+    /* Tons mais claros: os do claro somem no fundo escuro */
+    --speaker-1: #34d399;
+    --speaker-2: #60a5fa;
+    --speaker-3: #fbbf24;
+    --speaker-4: #f472b6;
+    --speaker-5: #a78bfa;
+    --speaker-6: #22d3ee;
+
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+}
+
+@supports not (scrollbar-color: auto) {
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+    }
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* Sidebar - Histórico de Áudio */
+.sidebar {
+    width: 320px;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sidebar-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Workspace: separa as reuniões (ex: um por emprego) */
+.workspace-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.workspace-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.workspace-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.workspace-row .icon-btn {
+    flex-shrink: 0;
+}
+
+.workspace-picker {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Seta do select, na cor do tema */
+.workspace-picker::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid var(--text-secondary);
+    border-bottom: 2px solid var(--text-secondary);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+}
+
+.workspace-select {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    padding: 7px 30px 7px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--sidebar-field-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: pointer;
+    outline: none;
+}
+
+.workspace-select:focus {
+    border-color: var(--btn-primary);
+}
+
+.sidebar-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.session-search {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--sidebar-field-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.session-search:focus {
+    border-color: var(--btn-primary);
+}
+
+/* Rodapé da barra lateral: "Sobre", pasta de dados, configurações e tema,
+   acessíveis em qualquer tela (com ou sem reunião aberta) */
+.sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.link-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.link-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Lista de reuniões: título e, embaixo, quando foi gravada e quanto durou */
+.session-list {
+    list-style: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.session-item {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.session-item:hover {
+    background: var(--hover-bg);
+}
+
+.session-item.active {
+    background: var(--bg-main);
+    box-shadow: inset 3px 0 0 var(--btn-primary), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.session-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.session-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.session-meta .rec-dot {
+    color: var(--danger-text);
+    font-weight: 600;
+}
+
+.session-list-empty {
+    padding: 16px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.icon-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.icon-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.message {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    position: relative;
+}
+
+.message:hover .msg-delete-btn {
+    opacity: 1;
+}
+
+.msg-delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.msg-delete-btn:hover {
+    background: var(--danger-hover);
+}
+
+/* Gravação: "Gravar" com um ponto vermelho; gravando, "Parar" com o tempo */
+.recorder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.record-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border: 1px solid var(--danger-text);
+    border-radius: 10px;
+    background: var(--sidebar-field-bg);
+    color: var(--danger-text);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.record-btn:hover:not(:disabled) {
+    background: var(--danger-soft);
+}
+
+.record-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.record-icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--danger);
+}
+
+.record-btn.recording {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff;
+}
+
+.record-btn.recording:hover:not(:disabled) {
+    background: var(--danger-hover);
+}
+
+.record-btn.recording .record-icon {
+    border-radius: 2px;
+    background: #ffffff;
+    animation: pulse-icon-anim 1.5s infinite;
+}
+
+.record-timer {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+.record-timer:empty {
+    display: none;
+}
+
+.status-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+@keyframes pulse-icon-anim {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.secondary-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.secondary-btn:hover {
+    background: var(--hover-bg);
+}
+
+.status-indicator:hover {
+    background: var(--hover-bg);
+}
+
+.status-indicator.recording {
+    color: var(--btn-primary);
+    border-color: var(--btn-primary);
+}
+
+.status-indicator.stopped {
+    color: var(--text-secondary);
+}
+
+.status-indicator.stopped .dot {
+    background-color: var(--text-secondary);
+    animation: none;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--btn-primary);
+    border-radius: 50%;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 163, 127, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 163, 127, 0); }
+}
+
+.transcripts-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 24px;
+}
+
+.panel-empty {
+    padding: 40px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.date-group {
+    margin-bottom: 24px;
+}
+
+.date-header {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 -40px 12px -40px;
+    padding: 20px 40px 10px 40px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-main);
+    z-index: 10;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.transcript-item {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    box-shadow: var(--card-shadow);
+}
+
+.transcript-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.transcript-speaker {
+    font: inherit;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.transcript-speaker:hover {
+    text-decoration: underline;
+}
+
+.transcript-offset {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+}
+
+.transcript-offset:hover {
+    text-decoration: underline;
+}
+
+.transcript-speaker.speaker-1 { color: var(--speaker-1); }
+.transcript-speaker.speaker-2 { color: var(--speaker-2); }
+.transcript-speaker.speaker-3 { color: var(--speaker-3); }
+.transcript-speaker.speaker-4 { color: var(--speaker-4); }
+.transcript-speaker.speaker-5 { color: var(--speaker-5); }
+.transcript-speaker.speaker-6 { color: var(--speaker-6); }
+
+/* Sessão aberta: abas Resumo | Transcrição | Chat | Notas */
+.session-view {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.session-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Janela estreita (ex: ao lado da reunião): os botões sobem para uma linha
+       acima das abas, em vez de sair da tela */
+    flex-wrap: wrap-reverse;
+    gap: 0 12px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.tab {
+    padding: 12px 14px;
+    margin-bottom: -1px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.tab.active {
+    color: var(--text-primary);
+    font-weight: 600;
+    border-bottom-color: var(--btn-primary);
+}
+
+.session-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    padding: 6px 0;
+}
+
+.icon-btn.danger-icon {
+    color: var(--danger-text);
+}
+
+.audio-bar {
+    display: flex;
+    justify-content: center;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.audio-bar audio {
+    width: 100%;
+    max-width: 640px;
+    height: 36px;
+}
+
+.tab-panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.chat-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 40px;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.summary-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.summary-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.summary-content.empty {
+    color: var(--text-secondary);
+}
+
+/* Markdown do resumo e das respostas do chat: títulos na escala do texto
+   (sem estilo, o "#" do marked virava um título de 32px) */
+.summary-content ul, .summary-content ol,
+.message.assistant .message-content ul, .message.assistant .message-content ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.summary-content li, .message.assistant .message-content li {
+    margin: 3px 0;
+}
+
+.summary-content p, .message.assistant .message-content p {
+    margin: 8px 0;
+}
+
+.summary-content h1, .summary-content h2, .summary-content h3, .summary-content h4,
+.message.assistant .message-content h1, .message.assistant .message-content h2,
+.message.assistant .message-content h3, .message.assistant .message-content h4 {
+    margin: 22px 0 8px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.summary-content h1, .message.assistant .message-content h1 { font-size: 18px; }
+.summary-content h2, .message.assistant .message-content h2 { font-size: 16px; }
+.summary-content h3, .summary-content h4,
+.message.assistant .message-content h3, .message.assistant .message-content h4 { font-size: 15px; }
+
+.summary-content > :first-child, .message.assistant .message-content > :first-child {
+    margin-top: 0;
+}
+
+.summary-content > :last-child, .message.assistant .message-content > :last-child {
+    margin-bottom: 0;
+}
+
+.summary-content hr, .message.assistant .message-content hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 16px 0;
+}
+
+.summary-content code, .message.assistant .message-content code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--hover-bg);
+    font-size: 0.9em;
+}
+
+.summary-content a, .message.assistant .message-content a {
+    color: var(--accent-text);
+}
+
+.summary-content blockquote, .message.assistant .message-content blockquote {
+    margin: 8px 0;
+    padding-left: 12px;
+    border-left: 3px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.chat-area {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-main);
+}
+
+.chat-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.chat-header h1 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+}
+
+.message.user {
+    background-color: var(--user-msg-bg);
+}
+
+.message.assistant {
+    background-color: var(--assistant-msg-bg);
+}
+
+.message-content {
+    max-width: 800px;
+    width: 100%;
+    font-size: 15px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* A resposta do assistente é HTML (Markdown convertido): com pre-wrap, as
+   quebras de linha entre as tags viravam linhas em branco, e a mensagem de
+   boas-vindas ficava com o recuo do index.html */
+.message.assistant .message-content {
+    white-space: normal;
+}
+
+.chat-input-container {
+    padding: 24px 40px;
+    background-image: linear-gradient(180deg, transparent 0%, var(--bg-main) 50%);
+}
+
+#chatForm {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+}
+
+#chatInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 4px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#sendBtn {
+    background: var(--btn-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    margin-left: 12px;
+}
+
+#sendBtn:hover:not(:disabled) {
+    background: var(--btn-primary-hover);
+}
+
+#sendBtn:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-text);
+    cursor: not-allowed;
+}
+
+.typing-indicator {
+    display: inline-flex;
+    gap: 4px;
+}
+.typing-indicator span {
+    width: 6px;
+    height: 6px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* Dialogs */
+.native-dialog {
+    margin: auto;
+    border: none;
+    border-radius: 12px;
+    padding: 24px;
+    background: var(--dialog-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--dialog-shadow);
+    min-width: 350px;
+    /* Textos longos quebram a linha em vez de alargar o diálogo */
+    max-width: 480px;
+}
+.native-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+.native-dialog h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+.native-dialog p {
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+}
+.native-dialog input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--field-bg);
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-size: 14px;
+    outline: none;
+}
+.native-dialog input:focus {
+    border-color: var(--btn-primary);
+}
+.native-dialog .checkbox-row,
+.settings-view .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: 400px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.native-dialog .checkbox-row input,
+.settings-view .checkbox-row input {
+    width: auto;
+    margin: 2px 0 0;
+    padding: 0;
+    accent-color: var(--btn-primary);
+}
+.native-dialog .checkbox-row small,
+.settings-view .checkbox-row small {
+    color: var(--text-secondary);
+}
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+.about-dialog {
+    max-width: 400px;
+}
+.about-version {
+    margin-left: 6px;
+    font-size: 0.7em;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+.native-dialog .about-credits {
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+.about-credits a {
+    color: var(--accent-text);
+    text-decoration: none;
+}
+.about-credits a:hover {
+    text-decoration: underline;
+}
+.primary-btn {
+    background-color: var(--btn-primary);
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+.primary-btn:hover {
+    background-color: var(--btn-primary-hover);
+}
+.danger-btn {
+    background-color: var(--danger) !important;
+    color: white !important;
+}
+.danger-btn:hover {
+    background-color: var(--danger-hover) !important;
+}
+
+.native-dialog .known-people,
+.settings-view .known-people {
+    margin-top: 16px;
+    margin-bottom: 20px;
+}
+
+.native-dialog .known-people small,
+.settings-view .known-people small {
+    color: var(--text-secondary);
+}
+
+.native-dialog .known-people ul,
+.settings-view .known-people ul {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.native-dialog .known-people li,
+.settings-view .known-people li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.native-dialog .known-people-actions,
+.settings-view .known-people-actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* Select dentro de um diálogo (ex: workspace de destino ao mover uma reunião)
+   e nas configurações */
+.native-dialog .dialog-select,
+.settings-view .dialog-select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--field-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.native-dialog .known-people li.known-people-empty,
+.settings-view .known-people li.known-people-empty {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    border-bottom: none;
+}
+
+/* Momentos citados no resumo, no chat e nas tarefas: tocam o áudio dali */
+.time-link {
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-text);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.time-link:hover {
+    text-decoration: underline;
+}
+
+/* Tarefas e "Quem é quem?" ficam acima do resumo */
+.summary-section {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.summary-section h4 {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+}
+
+.summary-section ul {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.summary-section li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-section li:last-child {
+    border-bottom: none;
+}
+
+.summary-hint,
+.task-details,
+.suggestion-evidence {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.summary-hint {
+    margin: 0;
+}
+
+#tasksList li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 10px;
+    align-items: start;
+}
+
+#tasksList input {
+    margin-top: 3px;
+    accent-color: var(--btn-primary);
+}
+
+#tasksList .task-details {
+    grid-column: 2;
+}
+
+#tasksList li.done .task-text {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.suggestion-evidence {
+    display: block;
+    margin: 4px 0 8px;
+    font-style: italic;
+}
+
+.suggestion-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.search-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.search-all input {
+    accent-color: var(--btn-primary);
+}
+
+.native-dialog .glossary,
+.settings-view .glossary {
+    margin-top: 16px;
+}
+
+.native-dialog .glossary small,
+.settings-view .glossary small {
+    color: var(--text-secondary);
+}
+
+.native-dialog .glossary textarea,
+.settings-view .glossary textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--field-bg);
+    color: var(--text-primary);
+    font: inherit;
+    resize: vertical;
+}
+
+/* Tela de boas-vindas: criar uma sessão ou importar um áudio gravado fora */
+.welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.welcome-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.1em;
+}
+
+.sidebar-title-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.icon-btn:disabled,
+.welcome-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Botões de ação ficam fora do texto copiado (Cmd/Ctrl+A e Cmd/Ctrl+C);
+   os tempos e os nomes nas falas continuam entrando */
+.icon-btn,
+.msg-delete-btn,
+.suggestion-actions,
+.typing-indicator {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Opções da IA do assistente nas configurações */
+.native-dialog .checkbox-row.provider-option {
+    margin-bottom: 10px;
+}
+
+.native-dialog .checkbox-row.provider-option:has(input:disabled),
+.settings-view .checkbox-row.provider-option:has(input:disabled) {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.native-dialog .provider-option + .provider-option + .dialog-select,
+.settings-view .provider-option + .provider-option + .dialog-select {
+    margin-top: 4px;
+}
+
+/* Intérprete: barra lateral */
+.interpreter {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--sidebar-field-bg);
+}
+
+.interpreter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.interpreter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.interpreter-toggle input {
+    accent-color: var(--btn-primary);
+}
+
+.ptt-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--btn-primary);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--accent-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+.ptt-btn:hover {
+    background: var(--hover-bg);
+}
+
+.ptt-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--btn-primary);
+}
+
+/* Apertado: a reunião não ouve você, ouve o inglês */
+.ptt-btn.active {
+    background: var(--btn-primary);
+    color: #ffffff;
+}
+
+.ptt-btn.active .ptt-dot {
+    background: #ffffff;
+    animation: pulse-icon-anim 1s infinite;
+}
+
+.ptt-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.interpreter-state {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.interpreter-state.error {
+    color: var(--danger-text);
+}
+
+.interpreter-state .last-en {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-primary);
+}
+
+.interpreter-state .state-message {
+    display: block;
+    margin-top: 2px;
+    color: var(--danger-text);
+}
+
+/* Intérprete: configurações */
+.native-dialog .interpreter-settings {
+    margin-top: 16px;
+}
+
+.native-dialog .interpreter-settings small,
+.settings-view .interpreter-settings small {
+    color: var(--text-secondary);
+}
+
+.native-dialog .checklist,
+.settings-view .checklist {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+.native-dialog .checklist li,
+.settings-view .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.native-dialog .checklist li:last-child,
+.settings-view .checklist li:last-child {
+    border-bottom: none;
+}
+
+.checklist .chk-icon {
+    flex-shrink: 0;
+    width: 18px;
+    font-weight: 700;
+}
+
+.checklist .chk-icon.ok {
+    color: var(--accent-text);
+}
+
+.checklist .chk-icon.missing {
+    color: var(--danger-text);
+}
+
+.checklist .chk-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.checklist .chk-body small {
+    display: block;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.checklist .chk-body code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--hover-bg);
+    font-size: 12px;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.checklist .chk-action {
+    flex-shrink: 0;
+}
+
+.native-dialog .checklist li.checklist-tip,
+.settings-view .checklist li.checklist-tip {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* Gravação da amostra da voz */
+.native-dialog .sample-reading {
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--btn-primary);
+    border-radius: 6px;
+    background: var(--field-bg);
+    font-size: 15px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.native-dialog .sample-status {
+    min-height: 1.4em;
+    color: var(--text-primary);
+}
+
+.native-dialog .sample-status.error {
+    color: var(--danger-text);
+}
+
+/* Calibração da voz: as opções para ouvir e escolher */
+.calibration-dialog {
+    width: 560px;
+    max-width: calc(100vw - 32px);
+}
+
+.native-dialog .calib-options {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.native-dialog .calib-options li {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.native-dialog .calib-options li.chosen {
+    border-color: var(--btn-primary);
+    box-shadow: inset 3px 0 0 var(--btn-primary);
+}
+
+.calib-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.calib-head strong {
+    flex: 1;
+}
+
+.calib-detail {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.native-dialog .calib-last {
+    margin: -4px 0 12px;
+    color: var(--accent-text);
+    font-size: 13px;
+}
+
+/* Configurações: tela própria, no lugar da reunião aberta */
+.settings-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-view[hidden] {
+    display: none;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px 10px;
+}
+
+.settings-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.settings-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 32px 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-nav button {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.settings-nav button:hover,
+.settings-nav button.active {
+    color: var(--text-primary);
+    background: var(--hover-bg);
+}
+
+.settings-nav button[hidden] {
+    display: none;
+}
+
+.settings-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.settings-content {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 32px 48px;
+}
+
+.settings-section {
+    margin-bottom: 20px;
+    padding: 20px 22px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    scroll-margin-top: 16px;
+}
+
+.settings-section[hidden] {
+    display: none;
+}
+
+.settings-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.settings-section h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.settings-section h3 {
+    margin: 18px 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.settings-workspace-name {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.settings-workspace-name::before {
+    content: "· ";
+}
+
+.settings-desc {
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.settings-view small {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.saved-flag {
+    color: var(--accent-text);
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.saved-flag.show {
+    opacity: 1;
+}
+
+.settings-view .checkbox-row {
+    max-width: none;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.settings-view .dialog-select {
+    margin-bottom: 0;
+    max-width: 420px;
+}
+
+.settings-view .glossary,
+.settings-view .known-people {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.settings-view .glossary textarea {
+    max-width: 100%;
+}
+
+.settings-view .known-people ul {
+    max-height: none;
+}
+
+.settings-view .checklist {
+    margin-top: 0;
+}
+
+.settings-view .known-people li span {
+    font-size: 14px;
+}
+
+/* Sem espaço sobrando no fim de cada cartão das configurações */
+.settings-view .settings-section > :last-child,
+.settings-view .settings-section .checkbox-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Tradução do Intérprete nas configurações */
+.settings-view .interpreter-correction {
+    margin-top: 20px;
+}
+
+.settings-view .interpreter-correction small {
+    color: var(--text-secondary);
+}
+
+.settings-view .interpreter-correction > small {
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* Notas da reunião: o texto ocupa a aba e as capturas de tela ficam embaixo */
+.notes-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.notes-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 20px 40px 24px;
+}
+
+.notes-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notes-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.notes-title h3 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.notes-hint {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.notes-header .saved-flag {
+    white-space: nowrap;
+}
+
+.capture-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.capture-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.capture-shortcut {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.capture-shortcut:empty {
+    display: none;
+}
+
+.notes-input {
+    flex: 1;
+    min-height: 120px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--field-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+}
+
+.notes-input:focus {
+    border-color: var(--btn-primary);
+}
+
+.notes-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.screenshots h4 {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Uma fileira que rola para o lado: as notas não perdem altura com muitas capturas */
+.screenshot-list {
+    display: flex;
+    gap: 10px;
+    list-style: none;
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+
+.screenshot-item {
+    flex: 0 0 auto;
+    width: 168px;
+}
+
+.screenshot-thumb {
+    display: block;
+    width: 100%;
+    height: 105px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--field-bg);
+    cursor: zoom-in;
+}
+
+.screenshot-thumb:hover,
+.screenshot-thumb:focus-visible {
+    border-color: var(--btn-primary);
+    outline: none;
+}
+
+.screenshot-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.screenshot-when {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+/* A aba Notas pisca quando chega uma captura feita pelo atalho com outra aba aberta */
+.tab.flash {
+    animation: tab-flash 1.4s ease-out;
+}
+
+@keyframes tab-flash {
+    0%, 70% { color: var(--accent-text); }
+}
+
+/* A captura em tamanho grande: do tamanho que couber na janela */
+.screenshot-dialog {
+    max-width: min(94vw, 1500px);
+    padding: 16px;
+}
+
+.screenshot-dialog img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 150px);
+    margin: 0 auto 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.screenshot-dialog .dialog-actions {
+    align-items: center;
+}
+
+.screenshot-moment {
+    margin-right: auto;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.danger-text-btn {
+    color: var(--danger-text);
+}
+
+/* Texto da IA mostrado como veio (sem as bibliotecas de Markdown): as quebras
+   de linha continuam valendo */
+.plain-text {
+    white-space: pre-wrap;
+}
+
+/* Nome sugerido pela IA para a reunião aberta: uma faixa embaixo do cabeçalho,
+   que não interrompe o que o usuário está fazendo */
+.name-suggestion {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-sidebar);
+    font-size: 13px;
+}
+
+.name-suggestion-text {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.name-suggestion-text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.name-suggestion button {
+    padding: 5px 12px;
+    font-size: 13px;
+}
+
+/* Avisos que somem sozinhos (ex: uma falha do backend), no canto de baixo */
+.toasts {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(420px, calc(100vw - 32px));
+    /* Só os avisos recebem cliques: o resto da faixa deixa passar para a tela */
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--card-border);
+    border-left: 3px solid var(--btn-primary);
+    border-radius: 8px;
+    background: var(--dialog-bg);
+    color: var(--text-primary);
+    box-shadow: var(--dialog-shadow);
+    font-size: 13px;
+    line-height: 1.45;
+    pointer-events: auto;
+}
+
+.toast.error {
+    border-left-color: var(--danger);
+}
+
+.toast span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.toast-close {
+    border: none;
+    background: none;
+    padding: 0 2px;
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.toast-close:hover {
+    color: var(--text-primary);
+}
