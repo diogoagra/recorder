@@ -159,6 +159,14 @@ de cada arquivo em [`frontend/vendor/README.md`](../frontend/vendor/README.md).
 Nada é carregado de CDN: o app funciona sem internet e as versões não mudam
 sozinhas.
 
+O visual é o de um aplicativo de mesa clássico: claro ou escuro, denso, com
+painéis de borda fina. As cores dos dois temas são variáveis no começo do
+`style.css` (o `theme.js` escolhe o tema antes de a tela ser desenhada). Os
+ícones são desenhos do próprio projeto, guardados uma vez só num `<svg>` de
+símbolos no começo do `index.html` e usados com `<use href="#i-nome">`. O
+player do áudio da reunião tem controles do app, e não os do navegador, que
+mudam de cara do WKWebView para o WebView2; quem toca é o `<audio>` de sempre.
+
 O Markdown que vem da IA (resumo e chat) passa por um lugar só,
 `renderMarkdown`, que o converte e limpa o HTML antes de ir para a tela.
 

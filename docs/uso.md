@@ -77,8 +77,9 @@ arquivo.
 
 - **Resumo ao vivo:** ao parar a gravação, o resumo aparece enquanto é
   escrito, citando o momento do áudio de cada ponto (ex: `12:34`). Clicar no
-  momento toca o áudio dali. O botão **Refazer** gera o resumo de novo, com
-  instruções suas se quiser ("foque nas decisões técnicas").
+  momento toca o áudio dali, no player que fica embaixo das abas (com
+  velocidade de 0,75× a 2× e volume). O botão **Refazer** gera o resumo de
+  novo, com instruções suas se quiser ("foque nas decisões técnicas").
 - **Tarefas:** as tarefas combinadas viram uma lista com título, responsável,
   prazo e momento, com caixa para marcar como feita. Só entra o que alguém
   disse que vai fazer, o que foi pedido a alguém pelo nome e a pendência que
