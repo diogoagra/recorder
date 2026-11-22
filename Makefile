@@ -1,6 +1,6 @@
 # Atalhos do projeto.
 #
-#   make model     baixa o modelo do Whisper (539 MB), conferido por SHA-256
+#   make model     baixa o modelo do Whisper (539 MB) para a pasta do projeto, conferido por SHA-256
 #   make dev       abre o app em modo desenvolvimento (recarrega a tela ao salvar)
 #   make mac       gera build/bin/Recorder.app e o build/bin/Recorder.dmg
 #   make windows   gera o build/bin/Recorder_Windows.zip (compilação cruzada a partir do macOS)
@@ -11,11 +11,15 @@
 
 GOFILES := $(shell git ls-files '*.go')
 
-# Modelo do Whisper que vai dentro do app (whisperModel, em
-# internal/backend/run.go). É o
-# arquivo publicado pelo projeto whisper.cpp no Hugging Face.
+# Modelo do Whisper: o arquivo publicado pelo projeto whisper.cpp no Hugging
+# Face, numa revisão fixa do repositório. O app não leva o modelo no pacote:
+# ele o baixa sozinho, para a pasta de dados, na primeira vez que abre
+# (DefaultModel, em internal/transcriber/model.go, com estes mesmos valores;
+# um teste confere). O `make model` é para quem desenvolve: com o arquivo na
+# pasta do projeto, o `make dev` e os testes com o Whisper de verdade o usam
+# dali, qualquer que seja a pasta de dados.
 MODEL        := ggml-medium-q5_0.bin
-MODEL_URL    := https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$(MODEL)
+MODEL_URL    := https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/$(MODEL)
 MODEL_SHA256 := 19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f
 
 # O wails instalado pelo "go install" fica na pasta de binários do Go, que nem
