@@ -39,13 +39,13 @@ $(MODEL):
 
 # O app aberto assim usa as suas reuniões de verdade (~/.recorder). Para
 # testar sem tocar nelas: RECORDER_HOME=~/.recorder-teste make dev
-dev: $(MODEL)
+dev:
 	$(WAILS) dev
 
-mac: $(MODEL)
+mac:
 	scripts/build-macos.sh
 
-windows: $(MODEL)
+windows:
 	scripts/build-windows.sh
 
 check: fmt-check vet test
