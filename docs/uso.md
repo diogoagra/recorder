@@ -3,6 +3,7 @@
 Como o Recorder se organiza no dia a dia: workspaces, gravação, importação de
 áudio, resumo, tarefas, chat, notas e onde tudo fica guardado.
 
+- [Primeira abertura](#primeira-abertura)
 - [Workspaces](#workspaces)
 - [Gravar](#gravar)
 - [Importar áudio](#importar-áudio)
@@ -12,6 +13,35 @@ Como o Recorder se organiza no dia a dia: workspaces, gravação, importação d
 - [Configurações](#configurações)
 - [Onde os dados ficam](#onde-os-dados-ficam)
 - [Modo terminal](#modo-terminal)
+
+## Primeira abertura
+
+O modelo de transcrição do Whisper (539 MB) não vai dentro do app. Na
+primeira vez que o Recorder abre, ele o baixa para `~/.recorder/models/` e
+mostra o andamento embaixo do botão **Gravar**, na barra de status e, com
+mais detalhe, na tela de boas-vindas.
+
+<p align="center">
+  <img src="img/primeira-abertura.png" width="820" alt="Primeira abertura: o download do modelo de transcrição na tela de boas-vindas, embaixo do botão Gravar e na barra de status">
+</p>
+
+- Enquanto o download não termina, dá para criar sessões e ler as reuniões
+  que já existem. **Gravar**, importar áudio, **Reprocessar** e o Intérprete
+  ficam esperando: o app avisa quando o modelo chega.
+- Se a conexão cair, o Recorder tenta de novo sozinho e **continua de onde
+  parou**, mesmo que o app tenha sido fechado no meio.
+- O arquivo é conferido (SHA-256) antes de ser usado.
+- Acontece uma vez só: o modelo fica na pasta de dados, fora do app, e as
+  próximas versões usam o mesmo arquivo. Quem atualiza de uma versão até a
+  1.1.0, que levava o modelo dentro do pacote, baixa uma vez.
+- **Sem internet nesse computador:** baixe o `ggml-medium-q5_0.bin` em outro
+  lugar (ele fica anexado ao
+  [Release 1.2.0](https://github.com/diogoagra/recorder/releases/tag/1.2.0))
+  e copie para `~/.recorder/models/`. O app o encontra na próxima tentativa,
+  em até um minuto, ou ao abrir de novo.
+
+Os modelos de identificação de quem fala (~45 MB) são baixados na mesma hora,
+para a mesma pasta ([locutores.md](locutores.md)).
 
 ## Workspaces
 
@@ -156,7 +186,7 @@ O botão de pasta, no rodapé da barra lateral, a abre. A pasta é acessível s�
 | `sessions_audio/` | O áudio das reuniões, um arquivo por reunião; ao retomar uma gravação, o trecho novo é juntado sem recomprimir o que já estava gravado |
 | `tmp_audio/` | Áudio temporário da gravação em andamento e dos blocos esperando transcrição |
 | `screenshots/` | Capturas de tela, uma pasta por reunião (PNG, com as miniaturas em `thumbs/`); são apagadas junto com a reunião |
-| `models/` | Modelos de identificação de locutores |
+| `models/` | O modelo de transcrição do Whisper (539 MB) e os de identificação de locutores, baixados na primeira abertura; durante o download, o arquivo parcial (`.part`) |
 | `voz/` | Intérprete: ambiente Python, a amostra da sua voz e a última calibração |
 | `interprete/` | Áudio das últimas 20 frases do Intérprete, para conferir o que o microfone captou |
 | `recorder.log` | Log do app (o anterior vira `recorder.log.1` quando passa de 5 MB). O texto das falas das reuniões não vai para o log; as frases ditas pelo Intérprete, sim ([o que vai para o log](seguranca.md#o-que-vai-para-o-log)) |
@@ -167,7 +197,10 @@ O executável também funciona sem janela (compilado com `go build -o recorder .
 
 - **Escuta:** `./recorder daemon` grava e transcreve até ser encerrado, numa
   sessão criada para a execução ("dd/mm/aaaa - Gravação pelo terminal"), que
-  depois aparece no app.
+  depois aparece no app. Sem o modelo do Whisper no computador, ele é baixado
+  enquanto a gravação já corre (o andamento vai para o terminal): o áudio
+  fica guardado, e o que não for transcrito na hora é transcrito na próxima
+  vez que o app abrir.
 - **Pergunta:** `./recorder query "Resuma sobre o que eu estava falando"`
   consulta o Ollama com as falas mais recentes.
 

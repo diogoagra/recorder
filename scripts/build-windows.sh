@@ -25,11 +25,6 @@ WAILS="$(command -v wails || true)"
 [ -n "${WAILS}" ] || WAILS="$(go env GOPATH)/bin/wails"
 
 echo "Verificando dependências de cross-compilação..."
-if [ ! -f ggml-medium-q5_0.bin ]; then
-    echo "Erro: o modelo do Whisper (ggml-medium-q5_0.bin) não está na pasta do projeto."
-    echo "Baixe com: make model"
-    exit 1
-fi
 if ! command -v x86_64-w64-mingw32-gcc &> /dev/null; then
     echo "Erro: Mingw-w64 não encontrado!"
     echo "Para compilar para Windows a partir do macOS, você precisa instalar o compilador C do Windows."
@@ -68,8 +63,8 @@ unzip -q -j "${WHISPER_TMP}/whisper.zip" \
     "Release/ggml-base.dll" "Release/ggml-cpu-*.dll" \
     -d "${OUTPUT_DIR}/whisper"
 
-echo "Copiando modelo de IA para a pasta do Windows..."
-cp ggml-medium-q5_0.bin "${OUTPUT_DIR}/"
+# O modelo do Whisper (539 MB) não vai no pacote: o app o baixa para a pasta de
+# dados na primeira vez que abre (internal/transcriber/model.go)
 
 echo "Copiando os avisos de licença..."
 # O pacote leva junto código e modelos de terceiros: os avisos acompanham o binário

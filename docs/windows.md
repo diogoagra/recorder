@@ -23,7 +23,6 @@ O caminho testado é a compilação cruzada a partir do macOS:
 
 ```sh
 brew install mingw-w64   # compilador C para Windows
-make model               # modelo do Whisper, se ainda não estiver na pasta
 make windows             # gera build/bin/Recorder_Windows.zip
 ```
 
@@ -35,13 +34,19 @@ O `scripts/build-windows.sh`:
 3. baixa o `whisper-server` oficial do whisper.cpp para Windows (CPU),
    conferido por SHA-256, e o coloca na pasta `whisper`, com as DLLs que ele
    usa;
-4. copia o modelo do Whisper e os avisos de licença;
+4. copia os avisos de licença (o modelo do Whisper não vai no pacote: o app
+   o baixa na primeira abertura);
 5. compacta tudo em `build/bin/Recorder_Windows.zip`.
 
 ## Instalar e rodar
 
 Descompacte o zip e abra o `Recorder.exe`: o app sobe o `whisper-server`
 sozinho, como no Mac, e o encerra ao fechar.
+
+- Na primeira abertura o app baixa o modelo de transcrição (539 MB) para a
+  pasta `.recorder\models` da sua pasta de usuário e mostra o andamento; a
+  gravação é liberada quando ele termina
+  ([primeira abertura](uso.md#primeira-abertura)).
 
 - O `whisper-server` do Windows precisa do
   [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)

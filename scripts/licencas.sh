@@ -19,8 +19,9 @@ mkdir -p "${DEST}/modulos-go"
 cp LICENSE "${DEST}/Recorder.txt"
 cp THIRD_PARTY_NOTICES.md "${DEST}/"
 
-# O que vai no pacote ao lado do app: o whisper-server (whisper.cpp), o modelo
-# do Whisper (OpenAI) e o ONNX Runtime, que vem com o sherpa-onnx
+# O que vai no pacote ao lado do app: o whisper-server (whisper.cpp) e o ONNX
+# Runtime, que vem com o sherpa-onnx. O modelo do Whisper (OpenAI) não vai
+# mais no pacote, mas é o app que o baixa: a licença dele continua junto.
 cp build/licencas/*.txt "${DEST}/"
 
 # O que vai embutido na interface

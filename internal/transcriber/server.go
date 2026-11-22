@@ -24,24 +24,6 @@ const Port = "47823"
 // IPv6 (::1), onde outro programa pode estar na mesma porta.
 const Endpoint = "http://127.0.0.1:" + Port
 
-// resolveModelPath procura o modelo na pasta atual ou, no app empacotado, em
-// Contents/Resources (macOS) ou ao lado do Recorder.exe (Windows).
-func resolveModelPath(modelName string) string {
-	modelPath := modelName
-	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
-		exe, _ := os.Executable()
-		for _, p := range []string{
-			filepath.Join(filepath.Dir(exe), "..", "Resources", modelName),
-			filepath.Join(filepath.Dir(exe), modelName),
-		} {
-			if _, err := os.Stat(p); err == nil {
-				return p
-			}
-		}
-	}
-	return modelPath
-}
-
 func resolveWhisperBin(binName string) string {
 	exe, _ := os.Executable()
 	var commonPaths []string
@@ -72,11 +54,11 @@ func resolveWhisperBin(binName string) string {
 	return binName
 }
 
-// StartServer sobe o whisper-server com o modelo na porta dada, só em
-// 127.0.0.1. Devolve nil se já houver um whisper-server atendendo na porta
-// (outra instância do app ou um iniciado à parte), e erro se ela estiver
-// ocupada por outro programa.
-func StartServer(modelName, port string) (*exec.Cmd, error) {
+// StartServer sobe o whisper-server com o modelo (o caminho do arquivo, de
+// Model.Find ou ModelFile.Path) na porta dada, só em 127.0.0.1. Devolve nil
+// se já houver um whisper-server atendendo na porta (outra instância do app
+// ou um iniciado à parte), e erro se ela estiver ocupada por outro programa.
+func StartServer(modelPath, port string) (*exec.Cmd, error) {
 	KillOrphans(port)
 	if whisperListening(port) {
 		if !NewWhisperClient("http://127.0.0.1:" + port).Running() {
@@ -87,9 +69,9 @@ func StartServer(modelName, port string) (*exec.Cmd, error) {
 		return nil, nil
 	}
 
+	modelName := filepath.Base(modelPath)
 	log.Printf("-> Iniciando whisper-server (%s) na porta %s...", modelName, port)
 
-	modelPath := resolveModelPath(modelName)
 	whisperBin := resolveWhisperBin("whisper-server")
 
 	cmd := exec.Command(whisperBin, "-m", modelPath, "--host", "127.0.0.1", "--port", port)

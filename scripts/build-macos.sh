@@ -25,11 +25,6 @@ WAILS="$(command -v wails || true)"
 [ -n "${WAILS}" ] || WAILS="$(go env GOPATH)/bin/wails"
 
 echo "Verificando dependências..."
-if [ ! -f ggml-medium-q5_0.bin ]; then
-    echo "Erro: o modelo do Whisper (ggml-medium-q5_0.bin) não está na pasta do projeto."
-    echo "Baixe com: make model"
-    exit 1
-fi
 if ! command -v cmake &> /dev/null; then
     echo "Erro: CMake não encontrado!"
     echo "Ele é usado para compilar o whisper-server que vai dentro do app."
@@ -46,9 +41,9 @@ echo "Compilando aplicativo Wails (isso pode demorar na primeira vez)..."
 # O executável procura as bibliotecas do sherpa-onnx em Contents/Frameworks
 CGO_LDFLAGS="-Wl,-rpath,@executable_path/../Frameworks" "${WAILS}" build -m
 
-echo "Copiando modelo de IA para o bundle do macOS..."
+# O modelo do Whisper (539 MB) não vai no pacote: o app o baixa para a pasta de
+# dados na primeira vez que abre (internal/transcriber/model.go)
 mkdir -p "${RESOURCES_DIR}"
-cp ggml-medium-q5_0.bin "${RESOURCES_DIR}/"
 
 echo "Copiando bibliotecas do sherpa-onnx (identificação de locutores) para o bundle do macOS..."
 case "$(uname -m)" in
