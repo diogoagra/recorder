@@ -77,7 +77,8 @@
 **Resumo, tarefas e chat**
 
 - **Resumo** ao parar a gravação, escrito ao vivo, com o momento do áudio de
-  cada ponto: clicar em `12:34` toca o que se falava ali.
+  cada ponto: clicar em `12:34` toca o que se falava ali, no player da
+  reunião (com velocidade de 0,75× a 2×).
 - **Tarefas** com responsável, prazo e momento, e uma caixa para marcar as
   feitas.
 - **Chat** que responde só com o que foi dito, na reunião aberta ou em todas
@@ -102,6 +103,13 @@
 - Segurando um atalho, você fala português e a reunião ouve **inglês com a
   sua voz**, frase a frase. A voz e a transcrição rodam no próprio Mac.
 
+**Interface**
+
+- Visual de aplicativo de mesa, denso, com **tema claro e escuro** (o do
+  sistema ou o que você escolher).
+- A **barra de status** mostra a IA em uso e destaca quando ela é da nuvem,
+  isto é, quando o texto das reuniões sai do computador.
+
 <p align="center">
   <img src="docs/img/transcricao.png" width="410" alt="Aba Transcrição: cada fala com o momento do áudio e o nome de quem falou">
   <img src="docs/img/chat.png" width="410" alt="Aba Chat: respostas com os momentos do áudio">
@@ -109,6 +117,9 @@
 <p align="center">
   <img src="docs/img/notas.png" width="410" alt="Aba Notas, com o botão de capturar a tela">
   <img src="docs/img/configuracoes.png" width="410" alt="Configurações do workspace: participantes, glossário e vozes conhecidas">
+</p>
+<p align="center">
+  <img src="docs/img/tema-escuro.png" width="820" alt="A mesma reunião no tema escuro">
 </p>
 <p align="center"><sub>Capturas feitas com reuniões fictícias.</sub></p>
 
@@ -122,8 +133,10 @@
 | Intérprete com a correção pelo Claude Haiku | O texto de cada frase traduzida é enviado à Anthropic. Dá para escolher a correção local ou nenhuma. |
 | Downloads feitos pelo app | Modelos de identificação de locutores (GitHub do sherpa-onnx), modelo de busca do chat (pelo Ollama) e, para o Intérprete, o modelo de voz (Hugging Face). |
 
-O app não tem telemetria nem servidor próprio. Os detalhes, e o que protege o
-app do que é dito numa reunião, estão em [docs/seguranca.md](docs/seguranca.md).
+O app não tem telemetria nem servidor próprio. A IA em uso fica sempre à vista
+na barra de status, com destaque quando é uma da nuvem. Os detalhes, e o que
+protege o app do que é dito numa reunião, estão em
+[docs/seguranca.md](docs/seguranca.md).
 
 ## Estado do projeto
 
