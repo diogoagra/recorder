@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const screenshotsSection = document.getElementById('screenshotsSection');
     const screenshotsList = document.getElementById('screenshotsList');
 
+    // Ícone de um botão: os desenhos ficam no <svg> escondido do começo do index.html
+    const svgIcon = (name) => `<svg class="ic" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+
     let currentSessionID = '';
     let settingsOpen = false; // a tela de configurações está aberta
     // Workspaces separam as reuniões (ex: um por emprego); a lista mostra as do atual
@@ -384,6 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const welcomeView = document.getElementById('welcomeView');
         const mainSessionView = document.getElementById('mainSessionView');
         document.getElementById('settingsView').hidden = !settingsOpen;
+        // O botão da engrenagem fica apertado enquanto as configurações estão abertas
+        document.getElementById('settingsBtn').classList.toggle('active', settingsOpen);
         if (settingsOpen) {
             welcomeView.style.display = 'none';
             mainSessionView.style.display = 'none';
@@ -649,7 +654,38 @@ document.addEventListener('DOMContentLoaded', () => {
         return workspaceSessions().filter(s => !query || normalize(`${s.name} ${s.summary || ''} ${s.notes || ''}`).includes(query));
     }
 
+    // "Ontem 10:00 · 16 min": quando a reunião foi gravada e quanto durou
+    function sessionWhen(s) {
+        const recorded = new Date(s.recorded_at);
+        const when = `${formatDateGroup(s.recorded_at)} ${recorded.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+        return [when, formatDuration(s.duration)].filter(Boolean).join(' · ');
+    }
+
+    // Vai na frente da linha de data da reunião que está sendo gravada
+    function recordingDot() {
+        const dot = document.createElement('span');
+        dot.className = 'rec-dot';
+        dot.textContent = '● Gravando · ';
+        return dot;
+    }
+
+    // Cabeçalho da área principal: o nome da reunião aberta e, embaixo, a mesma
+    // linha de data da lista
+    const sessionHeading = document.getElementById('sessionHeading');
+    const sessionMeta = document.getElementById('sessionMeta');
+
+    function renderSessionHeader() {
+        const s = currentSession();
+        sessionHeading.textContent = s ? sessionTitle(s.name) : '';
+        sessionHeading.title = s ? s.name : '';
+        sessionMeta.textContent = s ? sessionWhen(s) : '';
+        if (s && isRecording) sessionMeta.prepend(recordingDot());
+    }
+
     function renderSessionList() {
+        // O cabeçalho mostra a reunião aberta como a lista: muda junto com ela
+        // (nome novo, gravação começando ou parando, duração)
+        renderSessionHeader();
         const shown = visibleSessions();
         sessionList.innerHTML = '';
         if (shown.length === 0) {
@@ -669,18 +705,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title.textContent = sessionTitle(s.name);
             const meta = document.createElement('span');
             meta.className = 'session-meta';
-            const recorded = new Date(s.recorded_at);
-            const when = `${formatDateGroup(s.recorded_at)} ${recorded.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
             // Com um nome sugerido pela IA esperando resposta, a lista avisa: a
             // faixa com a sugestão só aparece com a reunião aberta
             const suggested = nameSuggestions[s.id] ? 'nome sugerido' : '';
-            meta.textContent = [when, formatDuration(s.duration), suggested].filter(Boolean).join(' · ');
-            if (isRecording && s.id === currentSessionID) {
-                const dot = document.createElement('span');
-                dot.className = 'rec-dot';
-                dot.textContent = '● Gravando · ';
-                meta.prepend(dot);
-            }
+            meta.textContent = [sessionWhen(s), suggested].filter(Boolean).join(' · ');
+            if (isRecording && s.id === currentSessionID) meta.prepend(recordingDot());
             item.append(title, meta);
             item.addEventListener('click', () => {
                 if (settingsOpen && (s.id === currentSessionID || !isRecording)) closeSettings();
@@ -732,9 +761,29 @@ document.addEventListener('DOMContentLoaded', () => {
         showTab(defaultTab(session, transcriptCount));
     }
 
+    // Barra de status: a IA do assistente em uso. Com uma IA na nuvem, o aviso
+    // de que o texto das reuniões sai do computador fica sempre à vista.
+    const statusLLM = document.getElementById('statusLLM');
+    const llmStatusLabels = {
+        ollama: 'IA: Ollama, neste computador',
+        agy: 'IA: agy, na nuvem',
+        claude: 'IA: Claude, na nuvem',
+    };
+
+    function renderStatusBar(provider) {
+        const cloud = provider === 'agy' || provider === 'claude';
+        statusLLM.textContent = llmStatusLabels[provider] || '';
+        statusLLM.hidden = !llmStatusLabels[provider];
+        statusLLM.classList.toggle('cloud', cloud);
+        statusLLM.title = cloud
+            ? 'O texto das reuniões é enviado ao serviço da IA escolhida nas configurações'
+            : 'O texto das reuniões não sai do computador';
+    }
+
     async function checkServicesHealth() {
         try {
             const health = await window.go.backend.App.CheckServices();
+            renderStatusBar(health.provider);
             const ollamaHealth = document.getElementById('ollamaHealth');
             const whisperHealth = document.getElementById('whisperHealth');
             const errorDialog = document.getElementById('errorDialog');
@@ -748,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 : 'o Ollama está rodando na porta 11434';
             if (ollamaHealth) {
                 ollamaHealth.innerText = llmOK ? 'OK' : (cloud ? 'Não encontrado' : 'Indisponível');
-                ollamaHealth.style.color = llmOK ? '#22c55e' : '#ef4444';
+                ollamaHealth.style.color = llmOK ? 'var(--accent-text)' : 'var(--danger-text)';
             }
             // Sem o Ollama, dá para seguir com uma IA na nuvem que esteja instalada
             const ollamaDown = health.provider === 'ollama' && !health.ollama;
@@ -756,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('useClaudeBtn').style.display = ollamaDown && health.claude ? '' : 'none';
             if (whisperHealth) {
                 whisperHealth.innerText = health.whisper ? 'OK' : 'Indisponível';
-                whisperHealth.style.color = health.whisper ? '#22c55e' : '#ef4444';
+                whisperHealth.style.color = health.whisper ? 'var(--accent-text)' : 'var(--danger-text)';
             }
             document.getElementById('whisperPort').innerText = health.whisper_port;
 
@@ -781,7 +830,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function init() {
         try {
             updateRecordStatus();
-            
+            // A versão, na barra de status
+            window.go.backend.App.GetVersion()
+                .then(version => { document.getElementById('statusVersion').textContent = `Recorder ${version}`; })
+                .catch(e => logError('Erro ao ler a versão do app', e));
+
             const retryHealthBtn = document.getElementById('retryHealthBtn');
             [['useAgyBtn', 'agy'], ['useClaudeBtn', 'claude']].forEach(([id, provider]) => {
                 document.getElementById(id).addEventListener('click', async () => {
@@ -1529,6 +1582,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Player do áudio da reunião ---
+    // Os controles são do app, e não os do navegador (que mudam de cara do
+    // macOS para o Windows). Quem toca continua sendo o <audio>: os botões só
+    // agem nele e mostram o estado dele, e os tempos do resumo, da transcrição
+    // e do chat seguem funcionando como antes (playFrom).
+    const audioPlayBtn = document.getElementById('audioPlayBtn');
+    const audioTime = document.getElementById('audioTime');
+    const audioSeek = document.getElementById('audioSeek');
+    const audioRate = document.getElementById('audioRate');
+    const audioMuteBtn = document.getElementById('audioMuteBtn');
+    const audioVolume = document.getElementById('audioVolume');
+
+    function renderAudioButtons() {
+        const playing = !sessionAudioPlayer.paused && !sessionAudioPlayer.ended;
+        audioPlayBtn.innerHTML = svgIcon(playing ? 'pause' : 'play');
+        audioPlayBtn.title = playing ? 'Pausar' : 'Tocar';
+        const silent = sessionAudioPlayer.muted || sessionAudioPlayer.volume === 0;
+        audioMuteBtn.innerHTML = svgIcon(silent ? 'speaker-off' : 'speaker');
+        audioMuteBtn.title = silent ? 'Voltar o som' : 'Tirar o som';
+        const volume = sessionAudioPlayer.muted ? 0 : sessionAudioPlayer.volume;
+        audioVolume.value = volume;
+        // --fill: até onde a barra aparece preenchida (style.css)
+        audioVolume.style.setProperty('--fill', `${volume * 100}%`);
+    }
+
+    function renderAudioTime() {
+        // Sem áudio carregado (ou num arquivo ainda sem duração conhecida), zero
+        const duration = Number.isFinite(sessionAudioPlayer.duration) ? sessionAudioPlayer.duration : 0;
+        audioSeek.max = duration;
+        audioSeek.value = sessionAudioPlayer.currentTime;
+        audioSeek.disabled = duration === 0;
+        audioSeek.style.setProperty('--fill', duration > 0 ? `${sessionAudioPlayer.currentTime / duration * 100}%` : '0%');
+        audioTime.textContent = `${formatOffset(sessionAudioPlayer.currentTime)} / ${formatOffset(duration)}`;
+    }
+
+    ['play', 'pause', 'ended', 'volumechange', 'emptied'].forEach(type => sessionAudioPlayer.addEventListener(type, renderAudioButtons));
+    ['timeupdate', 'durationchange', 'loadedmetadata', 'seeked', 'emptied'].forEach(type => sessionAudioPlayer.addEventListener(type, renderAudioTime));
+
+    audioPlayBtn.addEventListener('click', () => {
+        if (sessionAudioPlayer.paused) {
+            sessionAudioPlayer.play().catch(e => logError('Erro ao tocar o áudio', e));
+        } else {
+            sessionAudioPlayer.pause();
+        }
+    });
+
+    audioSeek.addEventListener('input', () => {
+        sessionAudioPlayer.currentTime = Number(audioSeek.value);
+        renderAudioTime();
+    });
+
+    audioRate.addEventListener('change', () => {
+        const rate = Number(audioRate.value);
+        // A padrão também: é ela que vale quando o áudio é recarregado (ex: a
+        // gravação foi retomada e o arquivo cresceu)
+        sessionAudioPlayer.defaultPlaybackRate = rate;
+        sessionAudioPlayer.playbackRate = rate;
+    });
+
+    audioMuteBtn.addEventListener('click', () => {
+        if (!sessionAudioPlayer.muted && sessionAudioPlayer.volume === 0) {
+            // O volume foi arrastado até zero: voltar o som é devolver o volume
+            sessionAudioPlayer.volume = 1;
+        } else {
+            sessionAudioPlayer.muted = !sessionAudioPlayer.muted;
+        }
+    });
+
+    audioVolume.addEventListener('input', () => {
+        sessionAudioPlayer.muted = false;
+        sessionAudioPlayer.volume = Number(audioVolume.value);
+    });
+
+    renderAudioButtons();
+    renderAudioTime();
+
     if (reprocessSessionBtn) {
         reprocessSessionBtn.addEventListener('click', async () => {
             const sessionID = currentSessionID;
@@ -2052,9 +2181,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tema claro/escuro. O index.html já aplicou o escolhido (ou o do sistema)
     // antes de desenhar a tela; o botão mostra o tema para o qual vai trocar
     const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const svgIcon = (body) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
-    const sunIcon = svgIcon('<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>');
-    const moonIcon = svgIcon('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>');
+    const sunIcon = svgIcon('sun');
+    const moonIcon = svgIcon('moon');
 
     function applyTheme(theme) {
         document.documentElement.dataset.theme = theme;
@@ -2222,6 +2350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await window.go.backend.App.SetLLM(provider, model);
             llmSettings.provider = provider;
             if (model) llmSettings[`${provider}_model`] = model;
+            renderStatusBar(provider);
             flashSaved(llmModelSelect);
         } catch (e) {
             alert('Não foi possível trocar a IA do assistente: ' + e);

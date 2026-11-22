@@ -16,10 +16,42 @@
     <script src="vendor/purify.min.js"></script>
 </head>
 <body>
+    <!-- Ícones da interface (desenhos próprios), usados com <use href="#i-...">.
+         Seguem a cor do texto do botão; só a marca tem cores fixas -->
+    <svg class="icon-sprite" width="0" height="0" aria-hidden="true">
+        <defs>
+            <symbol id="i-mark" viewBox="0 0 24 24"><rect x="1" y="1" width="22" height="22" rx="5.5" fill="#232323"></rect><rect x="9.2" y="4.6" width="5.6" height="9" rx="2.8" fill="#2fc86e"></rect><path d="M9.2 8.7h5.6" stroke="#232323" stroke-width=".9" fill="none"></path><path d="M7.2 11.3v.8a4.8 4.8 0 0 0 9.6 0v-.8M12 16.9v2" stroke="#2fc86e" stroke-width="1.3" stroke-linecap="round" fill="none"></path><path d="M9.5 19.7a2.5 1.2 0 0 1 5 0z" fill="#2fc86e"></path></symbol>
+            <symbol id="i-pencil" viewBox="0 0 24 24"><path fill="currentColor" d="M4 16.5V20h3.5L18 9.5 14.5 6zM15.9 4.6l3.5 3.5 1.4-1.4a1.5 1.5 0 0 0 0-2.1l-1.4-1.4a1.5 1.5 0 0 0-2.1 0z"></path></symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 11a1.5 1.5 0 0 1-1.5 1.4h-7A1.5 1.5 0 0 1 7 20z"></path></symbol>
+            <symbol id="i-upload" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5L12 4l4.5 4.5M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"></path></symbol>
+            <symbol id="i-download" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"></path></symbol>
+            <symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M12 4.5v15M4.5 12h15"></path></symbol>
+            <symbol id="i-folder" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.5A1.5 1.5 0 0 1 4.5 4h5l2 2.5h8A1.5 1.5 0 0 1 21 8v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"></path></symbol>
+            <symbol id="i-move" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3 5.5A1.5 1.5 0 0 1 4.5 4h5l2 2.5h8A1.5 1.5 0 0 1 21 8v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5zM8 12.4h4.6v-2.1l3.6 3-3.6 3v-2.1H8z"></path></symbol>
+            <symbol id="i-redo" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.6-5.9L4 8.5M4 4v4.5h4.5"></path></symbol>
+            <symbol id="i-gear" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.8l2.3-1.4 2.4 2.4-1.4 2.3c.3.5.6 1.1.8 1.7l2.6.5v3.4l-2.6.5c-.2.6-.5 1.2-.8 1.7l1.4 2.3-2.4 2.4-2.3-1.4c-.5.3-1.1.6-1.7.8l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.8l-2.3 1.4-2.4-2.4 1.4-2.3c-.3-.5-.6-1.1-.8-1.7L2 13.7v-3.4l2.6-.5c.2-.6.5-1.2.8-1.7L4 5.8l2.4-2.4 2.3 1.4c.5-.3 1.1-.6 1.7-.8zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"></path></symbol>
+            <symbol id="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"></path></symbol>
+            <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.6" fill="currentColor"></circle><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"></path></symbol>
+            <symbol id="i-send" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M21 3L10.5 13.5M21 3l-6.5 18-4-7.5-7.5-4z"></path></symbol>
+            <symbol id="i-camera" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M8.5 4h7l1.6 2.5H20a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h2.9zM12 9a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></path></symbol>
+            <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13l11-6.5z"></path></symbol>
+            <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5.5h3.6v13H7zM13.4 5.5H17v13h-3.6z"></path></symbol>
+            <symbol id="i-speaker" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9z"></path><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 8.5a5 5 0 0 1 0 7M18.3 5.7a9 9 0 0 1 0 12.6"></path></symbol>
+            <symbol id="i-speaker-off" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9z"></path><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M15.5 9.5l5 5M20.5 9.5l-5 5"></path></symbol>
+            <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"></path></symbol>
+        </defs>
+    </svg>
+
     <div class="app-container">
-        <!-- Barra lateral: gravação e lista de reuniões -->
+        <!-- Barra lateral: marca, workspace, gravação, Intérprete e lista de reuniões -->
         <aside class="sidebar">
             <div class="sidebar-header">
+                <div class="brand">
+                    <svg class="brand-mark" aria-hidden="true"><use href="#i-mark"></use></svg>
+                    <span class="brand-name">Recorder</span>
+                    <span class="brand-tagline">Assistente local</span>
+                </div>
+
                 <!-- Workspace: separa as reuniões (ex: um por emprego) -->
                 <div class="workspace-bar">
                     <label for="workspaceSelect" class="workspace-label">Workspace</label>
@@ -28,22 +60,10 @@
                             <select id="workspaceSelect" class="workspace-select" title="Trocar de workspace"></select>
                         </div>
                         <button id="renameWorkspaceBtn" class="icon-btn" title="Renomear workspace">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            <svg class="ic" aria-hidden="true"><use href="#i-pencil"></use></svg>
                         </button>
                         <button id="deleteWorkspaceBtn" class="icon-btn danger-icon" title="Apagar workspace">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="sidebar-title">
-                    <h2>Reuniões</h2>
-                    <div class="sidebar-title-actions">
-                        <button id="importAudioBtn" class="icon-btn" title="Importar áudio (ex: gravado no celular)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        </button>
-                        <button id="newSessionBtn" class="icon-btn" title="Nova sessão">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg>
                         </button>
                     </div>
                 </div>
@@ -76,6 +96,18 @@
                     <small id="interpreterState" class="interpreter-state"></small>
                 </div>
 
+                <div class="sidebar-title">
+                    <h2>Reuniões</h2>
+                    <div class="sidebar-title-actions">
+                        <button id="importAudioBtn" class="icon-btn" title="Importar áudio (ex: gravado no celular)">
+                            <svg class="ic" aria-hidden="true"><use href="#i-upload"></use></svg>
+                        </button>
+                        <button id="newSessionBtn" class="icon-btn" title="Nova sessão">
+                            <svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>
+                        </button>
+                    </div>
+                </div>
+
                 <input type="search" id="sessionSearch" class="session-search" placeholder="Buscar reuniões" autocomplete="off">
             </div>
             <ul id="sessionList" class="session-list"></ul>
@@ -84,30 +116,31 @@
                 <button id="aboutBtn" type="button" class="link-btn">Sobre o Recorder</button>
                 <div class="footer-actions">
                     <button id="openDataDirBtn" class="icon-btn" title="Abrir pasta de áudios e banco de dados">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <svg class="ic" aria-hidden="true"><use href="#i-folder"></use></svg>
                     </button>
                     <button id="settingsBtn" class="icon-btn" title="Configurações">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <svg class="ic" aria-hidden="true"><use href="#i-gear"></use></svg>
                     </button>
                     <button id="themeToggleBtn" class="icon-btn" title="Usar o tema escuro"></button>
                 </div>
             </footer>
         </aside>
 
-        <!-- Main Content para o Chat -->
+        <!-- Área principal: boas-vindas, a reunião aberta ou as configurações -->
         <main class="chat-area">
             <!-- Tela de Boas-vindas -->
-            <div id="welcomeView" class="welcome-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; flex: 1;">
-                <h1 style="font-size: 2.5em; margin-bottom: 10px;">Bem-vindo ao Recorder 👋</h1>
-                <p style="color: var(--text-secondary); max-width: 400px; margin: 20px 0; font-size: 1.1em; line-height: 1.5;">O seu assistente de IA local para transcrição e resumos. Crie uma nova sessão para começar a gravar, importe um áudio gravado em outro lugar (como o celular) ou selecione uma sessão no menu lateral.</p>
+            <div id="welcomeView" class="welcome-container" style="display: flex;">
+                <svg class="welcome-mark" aria-hidden="true"><use href="#i-mark"></use></svg>
+                <h1>Bem-vindo ao Recorder 👋</h1>
+                <p>O seu assistente de IA local para transcrição e resumos. Crie uma nova sessão para começar a gravar, importe um áudio gravado em outro lugar (como o celular) ou selecione uma sessão no menu lateral.</p>
 
                 <div class="welcome-actions">
                     <button id="welcomeNewSessionBtn" class="primary-btn welcome-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>
                         Criar Nova Sessão
                     </button>
                     <button id="welcomeImportAudioBtn" class="secondary-btn welcome-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <svg class="ic" aria-hidden="true"><use href="#i-upload"></use></svg>
                         Importar Áudio
                     </button>
                 </div>
@@ -115,13 +148,36 @@
 
             <!-- Sessão aberta: resumo, transcrição, chat e notas em abas -->
             <div id="mainSessionView" class="session-view" style="display: none;">
-                <header class="chat-header" style="flex-direction: column; justify-content: center; align-items: center;">
-                    <h1>Recorder - Assistente Local</h1>
-                    <div id="ollamaStatusIndicator" style="display: none; align-items: center; gap: 8px; font-size: 0.85em; color: var(--text-secondary); margin-top: 4px;">
-                        <span id="ollamaStatusText">Processando...</span>
-                        <div class="typing-indicator" style="padding: 0; background: none; box-shadow: none;">
-                            <span></span><span></span><span></span>
+                <!-- O nome da reunião aberta e, embaixo, quando foi gravada e quanto durou (app.js, renderSessionHeader) -->
+                <header class="session-header">
+                    <div class="session-heading">
+                        <h1 id="sessionHeading"></h1>
+                        <div class="session-subline">
+                            <span id="sessionMeta"></span>
+                            <div id="ollamaStatusIndicator" class="busy-indicator" style="display: none;">
+                                <span id="ollamaStatusText">Processando...</span>
+                                <div class="typing-indicator">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="session-actions">
+                        <button id="exportSessionBtn" class="icon-btn" title="Exportar resumo para um arquivo">
+                            <svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg>
+                        </button>
+                        <button id="moveSessionBtn" class="icon-btn" title="Mover para outro workspace" style="display: none;">
+                            <svg class="ic" aria-hidden="true"><use href="#i-move"></use></svg>
+                        </button>
+                        <button id="renameSessionBtn" class="icon-btn" title="Renomear sessão">
+                            <svg class="ic" aria-hidden="true"><use href="#i-pencil"></use></svg>
+                        </button>
+                        <button id="reprocessSessionBtn" class="icon-btn" title="Reprocessar áudio (refaz a transcrição)">
+                            <svg class="ic" aria-hidden="true"><use href="#i-redo"></use></svg>
+                        </button>
+                        <button id="deleteSessionBtn" class="icon-btn danger-icon" title="Apagar sessão">
+                            <svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg>
+                        </button>
                     </div>
                 </header>
 
@@ -133,123 +189,118 @@
                     <button type="button" id="nameSuggestionDismissBtn" class="secondary-btn">Ignorar</button>
                 </div>
 
-                <div class="session-bar">
-                    <div class="tabs" role="tablist">
-                        <button type="button" class="tab" role="tab" data-tab="summary">Resumo</button>
-                        <button type="button" class="tab" role="tab" data-tab="transcript">Transcrição</button>
-                        <button type="button" class="tab" role="tab" data-tab="chat">Chat</button>
-                        <button type="button" class="tab" role="tab" data-tab="notes">Notas</button>
-                    </div>
-                    <div class="session-actions">
-                        <button id="exportSessionBtn" class="icon-btn" title="Exportar resumo para um arquivo">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        </button>
-                        <button id="moveSessionBtn" class="icon-btn" title="Mover para outro workspace" style="display: none;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><polyline points="12 10 15 13 12 16"></polyline><line x1="8" y1="13" x2="15" y2="13"></line></svg>
-                        </button>
-                        <button id="renameSessionBtn" class="icon-btn" title="Renomear sessão">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                        </button>
-                        <button id="reprocessSessionBtn" class="icon-btn" title="Reprocessar áudio (refaz a transcrição)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
-                        </button>
-                        <button id="deleteSessionBtn" class="icon-btn danger-icon" title="Apagar sessão">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </div>
+                <div class="tabs" role="tablist">
+                    <button type="button" class="tab" role="tab" data-tab="summary">Resumo</button>
+                    <button type="button" class="tab" role="tab" data-tab="transcript">Transcrição</button>
+                    <button type="button" class="tab" role="tab" data-tab="chat">Chat</button>
+                    <button type="button" class="tab" role="tab" data-tab="notes">Notas</button>
                 </div>
 
-                <!-- Fica fora das abas: os tempos do resumo, da transcrição e do chat tocam aqui -->
-                <div id="audioBar" class="audio-bar" style="display: none;">
-                    <audio id="sessionAudioPlayer" controls></audio>
+                <!-- O painel das abas: a aba ativa se liga a ele -->
+                <div class="session-box">
+                    <!-- Fica fora das abas: os tempos do resumo, da transcrição e do chat tocam aqui.
+                         Os controles são do app (os do navegador mudam de cara do macOS para o
+                         Windows); quem toca é o <audio> (app.js, "Player do áudio da reunião") -->
+                    <div id="audioBar" class="audio-bar" style="display: none;">
+                        <audio id="sessionAudioPlayer"></audio>
+                        <button id="audioPlayBtn" type="button" class="icon-btn audio-play" title="Tocar"></button>
+                        <span id="audioTime" class="audio-time">00:00 / 00:00</span>
+                        <input type="range" id="audioSeek" class="audio-seek" min="0" max="0" step="any" value="0" aria-label="Posição no áudio">
+                        <select id="audioRate" class="audio-rate" title="Velocidade" aria-label="Velocidade">
+                            <option value="0.75">0,75×</option>
+                            <option value="1" selected>1×</option>
+                            <option value="1.25">1,25×</option>
+                            <option value="1.5">1,5×</option>
+                            <option value="2">2×</option>
+                        </select>
+                        <button id="audioMuteBtn" type="button" class="icon-btn audio-mute" title="Tirar o som"></button>
+                        <input type="range" id="audioVolume" class="audio-volume" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+                    </div>
+
+                    <section id="summaryTab" class="tab-panel" role="tabpanel">
+                        <div class="panel-content">
+                            <div id="speakerSuggestions" class="summary-section" style="display: none;">
+                                <h4>Quem é quem?</h4>
+                                <p class="summary-hint">Nomes tirados da própria conversa. Quando as pistas bastam, o Recorder já dá o nome à voz e mostra aqui o trecho que o comprova; nos outros casos, pede a sua confirmação. A voz com nome fica guardada para as próximas reuniões.</p>
+                                <ul id="speakerSuggestionsList"></ul>
+                            </div>
+
+                            <div id="tasksSection" class="summary-section" style="display: none;">
+                                <h4>Tarefas</h4>
+                                <ul id="tasksList"></ul>
+                            </div>
+
+                            <div class="summary-header">
+                                <h3>Resumo da sessão</h3>
+                                <button id="regenerateSummaryBtn" class="secondary-btn small-btn" title="Refazer Resumo">
+                                    <svg class="ic" aria-hidden="true"><use href="#i-redo"></use></svg>
+                                    Refazer
+                                </button>
+                            </div>
+                            <div id="sessionSummaryContent" class="summary-content"></div>
+                        </div>
+                    </section>
+
+                    <section id="transcriptTab" class="tab-panel" role="tabpanel" hidden>
+                        <div class="transcripts-container" id="transcriptsContainer"></div>
+                        <p id="transcriptsEmpty" class="panel-empty">Nenhuma fala transcrita ainda.</p>
+                    </section>
+
+                    <section id="chatTab" class="tab-panel chat-panel" role="tabpanel" hidden>
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant" id="welcomeMessage">
+                                <div class="message-content">
+                                    Olá! Eu sou o assistente do Recorder. Pergunte o que quiser sobre esta reunião (ou sobre todas as deste workspace, marcando a opção abaixo).
+                                </div>
+                            </div>
+                            <!-- Mensagens do chat serão injetadas aqui -->
+                        </div>
+
+                        <div class="chat-input-container">
+                            <form id="chatForm">
+                                <textarea id="chatInput" placeholder="Pergunte sobre a reunião (ex: o que ficou combinado sobre o deploy?)" rows="1"></textarea>
+                                <button type="submit" id="sendBtn" title="Enviar" disabled>
+                                    <svg class="ic" aria-hidden="true"><use href="#i-send"></use></svg>
+                                </button>
+                            </form>
+                            <label class="search-all">
+                                <input type="checkbox" id="searchAllSessions">
+                                Pesquisar em todas as reuniões deste workspace
+                            </label>
+                        </div>
+                    </section>
+
+                    <!-- Notas: o que o usuário escreve durante a reunião e as capturas de tela dela -->
+                    <section id="notesTab" class="tab-panel notes-panel" role="tabpanel" hidden>
+                        <div class="notes-content">
+                            <div class="notes-header">
+                                <div class="notes-title">
+                                    <h3>Notas da reunião</h3>
+                                    <p class="notes-hint">Escreva à vontade durante a reunião: fica salvo com ela.</p>
+                                </div>
+                                <span id="notesSaved" class="saved-flag" aria-live="polite"></span>
+                                <button id="captureScreenBtn" type="button" class="secondary-btn capture-btn" hidden>
+                                    <svg class="ic" aria-hidden="true"><use href="#i-camera"></use></svg>
+                                    Capturar tela
+                                    <span id="captureShortcut" class="capture-shortcut"></span>
+                                </button>
+                            </div>
+                            <!-- Travado até as notas de uma reunião serem carregadas (app.js, loadNotes) -->
+                            <textarea id="notesInput" class="notes-input" placeholder="Pontos importantes, dúvidas, o que ficou para você fazer..." readonly></textarea>
+                            <div id="screenshotsSection" class="screenshots" hidden>
+                                <h4>Capturas de tela</h4>
+                                <ul id="screenshotsList" class="screenshot-list"></ul>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-
-                <section id="summaryTab" class="tab-panel" role="tabpanel">
-                    <div class="panel-content">
-                        <div id="speakerSuggestions" class="summary-section" style="display: none;">
-                            <h4>Quem é quem?</h4>
-                            <p class="summary-hint">Nomes tirados da própria conversa. Quando as pistas bastam, o Recorder já dá o nome à voz e mostra aqui o trecho que o comprova; nos outros casos, pede a sua confirmação. A voz com nome fica guardada para as próximas reuniões.</p>
-                            <ul id="speakerSuggestionsList"></ul>
-                        </div>
-
-                        <div id="tasksSection" class="summary-section" style="display: none;">
-                            <h4>Tarefas</h4>
-                            <ul id="tasksList"></ul>
-                        </div>
-
-                        <div class="summary-header">
-                            <h3>Resumo da sessão</h3>
-                            <button id="regenerateSummaryBtn" class="icon-btn" title="Refazer Resumo" style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
-                                Refazer
-                            </button>
-                        </div>
-                        <div id="sessionSummaryContent" class="summary-content"></div>
-                    </div>
-                </section>
-
-                <section id="transcriptTab" class="tab-panel" role="tabpanel" hidden>
-                    <div class="transcripts-container" id="transcriptsContainer"></div>
-                    <p id="transcriptsEmpty" class="panel-empty">Nenhuma fala transcrita ainda.</p>
-                </section>
-
-                <section id="chatTab" class="tab-panel chat-panel" role="tabpanel" hidden>
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="message assistant" id="welcomeMessage">
-                            <div class="message-content">
-                                Olá! Eu sou o assistente do Recorder. Pergunte o que quiser sobre esta reunião (ou sobre todas as deste workspace, marcando a opção abaixo).
-                            </div>
-                        </div>
-                        <!-- Mensagens do chat serão injetadas aqui -->
-                    </div>
-
-                    <div class="chat-input-container">
-                        <form id="chatForm">
-                            <textarea id="chatInput" placeholder="Pergunte sobre a reunião (ex: o que ficou combinado sobre o deploy?)" rows="1"></textarea>
-                            <button type="submit" id="sendBtn" disabled>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                        </form>
-                        <label class="search-all">
-                            <input type="checkbox" id="searchAllSessions">
-                            Pesquisar em todas as reuniões deste workspace
-                        </label>
-                    </div>
-                </section>
-
-                <!-- Notas: o que o usuário escreve durante a reunião e as capturas de tela dela -->
-                <section id="notesTab" class="tab-panel notes-panel" role="tabpanel" hidden>
-                    <div class="notes-content">
-                        <div class="notes-header">
-                            <div class="notes-title">
-                                <h3>Notas da reunião</h3>
-                                <p class="notes-hint">Escreva à vontade durante a reunião: fica salvo com ela.</p>
-                            </div>
-                            <span id="notesSaved" class="saved-flag" aria-live="polite"></span>
-                            <button id="captureScreenBtn" type="button" class="secondary-btn capture-btn" hidden>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                                Capturar tela
-                                <span id="captureShortcut" class="capture-shortcut"></span>
-                            </button>
-                        </div>
-                        <!-- Travado até as notas de uma reunião serem carregadas (app.js, loadNotes) -->
-                        <textarea id="notesInput" class="notes-input" placeholder="Pontos importantes, dúvidas, o que ficou para você fazer..." readonly></textarea>
-                        <div id="screenshotsSection" class="screenshots" hidden>
-                            <h4>Capturas de tela</h4>
-                            <ul id="screenshotsList" class="screenshot-list"></ul>
-                        </div>
-                    </div>
-                </section>
             </div>
             <!-- Configurações: tela própria, no lugar da reunião aberta -->
             <div id="settingsView" class="settings-view" hidden>
                 <header class="settings-header">
                     <h1>Configurações</h1>
                     <button id="settingsCloseBtn" type="button" class="icon-btn" title="Fechar (Esc)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg>
                     </button>
                 </header>
                 <nav class="settings-nav" aria-label="Seções">
@@ -355,6 +406,17 @@
         </main>
     </div>
 
+    <!-- Barra de status: para onde vai o que é dito na reunião (a transcrição é
+         sempre neste computador; a IA do assistente é a escolhida nas
+         configurações) e a versão do app (app.js, renderStatusBar) -->
+    <footer class="statusbar">
+        <div class="status-services">
+            <span class="status-item">Transcrição: Whisper, neste computador</span>
+            <span id="statusLLM" class="status-item" hidden></span>
+        </div>
+        <span id="statusVersion" class="status-version"></span>
+    </footer>
+
     <!-- Avisos que somem sozinhos (ex: uma falha do backend), sem interromper -->
     <div id="toasts" class="toasts"></div>
 
@@ -428,7 +490,14 @@
 
     <dialog id="aboutDialog" class="native-dialog about-dialog">
         <form method="dialog">
-            <h3>Recorder <span id="aboutVersion" class="about-version"></span></h3>
+            <h3>Sobre</h3>
+            <div class="about-head">
+                <svg class="about-mark" aria-hidden="true"><use href="#i-mark"></use></svg>
+                <div>
+                    <div class="about-name">Recorder</div>
+                    <div class="about-version">Versão <span id="aboutVersion"></span></div>
+                </div>
+            </div>
             <p>Assistente local de transcrição e resumo de reuniões.</p>
             <p class="about-credits">
                 Desenvolvido por <strong>Diogo Agra</strong><br>
@@ -442,15 +511,15 @@
         </form>
     </dialog>
 
-    <dialog id="errorDialog" class="native-dialog" style="max-width: 500px; text-align: center;">
-        <h3 style="color: #ef4444;">Serviços Indisponíveis</h3>
-        <p id="errorMessage" style="margin: 20px 0;">Não foi possível conectar aos serviços locais necessários.</p>
-        <div style="text-align: left; background: var(--bg-sidebar); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 5px 0;"><strong id="llmHealthLabel">Ollama:</strong> <span id="ollamaHealth">Verificando...</span></p>
-            <p style="margin: 5px 0;"><strong>Whisper Server:</strong> <span id="whisperHealth">Verificando...</span></p>
+    <dialog id="errorDialog" class="native-dialog error-dialog">
+        <h3>Serviços Indisponíveis</h3>
+        <p id="errorMessage">Não foi possível conectar aos serviços locais necessários.</p>
+        <div class="health-box">
+            <p><strong id="llmHealthLabel">Ollama:</strong> <span id="ollamaHealth">Verificando...</span></p>
+            <p><strong>Whisper Server:</strong> <span id="whisperHealth">Verificando...</span></p>
         </div>
-        <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 20px;">Por favor, verifique se <span id="llmHealthHelp">o Ollama está rodando na porta 11434</span> e o Whisper Server na porta <span id="whisperPort">do Recorder</span> (se outro programa estiver usando essa porta, o Recorder não consegue subir o Whisper). Reinicie o aplicativo após corrigir o problema.</p>
-        <div class="dialog-actions" style="justify-content: center;">
+        <p class="health-help">Por favor, verifique se <span id="llmHealthHelp">o Ollama está rodando na porta 11434</span> e o Whisper Server na porta <span id="whisperPort">do Recorder</span> (se outro programa estiver usando essa porta, o Recorder não consegue subir o Whisper). Reinicie o aplicativo após corrigir o problema.</p>
+        <div class="dialog-actions">
             <button type="button" id="useClaudeBtn" class="secondary-btn" style="display: none;" title="O texto das reuniões passa a ser enviado à Anthropic">Usar o Claude (nuvem)</button>
             <button type="button" id="useAgyBtn" class="secondary-btn" style="display: none;" title="O texto das reuniões passa a ser enviado ao Gemini (ou ao modelo escolhido no agy)">Usar o agy (nuvem)</button>
             <button type="button" id="retryHealthBtn" class="primary-btn">Tentar Novamente</button>
