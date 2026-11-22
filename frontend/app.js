@@ -45,6 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let importing = false; // lendo e convertendo um áudio importado
     let servicesReady = false;
     let initFailed = false; // a carga inicial falhou (o motivo fica num aviso na tela)
+    // O modelo de transcrição (Whisper) não vai no pacote do app: na primeira
+    // execução ele é baixado, e até lá o que depende da transcrição espera.
+    // state: 'ready', 'downloading' ou 'waiting' (o download parou e o app vai
+    // tentar de novo); done e total em bytes.
+    let whisperModel = { state: 'ready', done: 0, total: 0, error: '' };
+    const modelPending = () => whisperModel.state !== 'ready';
+    const modelPercent = () => (whisperModel.total > 0 ? Math.floor(whisperModel.done * 100 / whisperModel.total) : 0);
     let allSessions = [];
     // Reuniões que não estão na lista e já foram procuradas (ou foram apagadas
     // aqui): uma fala delas não faz recarregar a lista de novo
@@ -217,10 +224,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Texto embaixo do botão: o que está acontecendo com a gravação e a transcrição
     function updateRecordStatus() {
-        toggleRecordBtn.disabled = !servicesReady || !currentSessionID;
+        toggleRecordBtn.disabled = !servicesReady || !currentSessionID || modelPending();
+        toggleRecordBtn.title = modelPending() ? 'A gravação é liberada quando o modelo de transcrição terminar de baixar' : '';
         let text;
         if (!servicesReady) {
             text = initFailed ? 'Não foi possível iniciar o Recorder' : 'Inicializando IA...';
+        } else if (modelPending()) {
+            text = whisperModel.state === 'waiting'
+                ? 'O download do modelo de transcrição parou. Tentando de novo...'
+                : `Baixando o modelo de transcrição: ${modelPercent()}%`;
         } else if (importing) {
             text = 'Importando áudio...';
         } else if (!currentSessionID) {
@@ -780,6 +792,53 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'O texto das reuniões não sai do computador';
     }
 
+    // O download do modelo de transcrição, na primeira execução: na barra de
+    // status, embaixo do botão de gravar e, mais explicado, na tela de
+    // boas-vindas. O estado chega com a verificação dos serviços e, depois,
+    // pelo evento "whisper-model".
+    const megabytes = (bytes) => Math.round(bytes / 1e6);
+
+    function renderWhisperModel() {
+        const pending = modelPending();
+        const stalled = whisperModel.state === 'waiting';
+        const percent = modelPercent();
+
+        const statusWhisper = document.getElementById('statusWhisper');
+        statusWhisper.textContent = !pending ? 'Transcrição: Whisper, neste computador'
+            : (stalled ? 'Transcrição: o download do modelo parou' : `Transcrição: baixando o modelo (${percent}%)`);
+        statusWhisper.title = pending
+            ? 'O modelo de transcrição é baixado uma vez só; o áudio das reuniões não sai do computador'
+            : 'O áudio das reuniões é transcrito neste computador';
+
+        document.querySelectorAll('.model-progress').forEach((bar) => {
+            bar.classList.toggle('stalled', stalled);
+            bar.setAttribute('aria-valuenow', percent);
+            bar.firstElementChild.style.width = `${percent}%`;
+        });
+        document.getElementById('modelProgress').hidden = !pending;
+        document.getElementById('modelNotice').hidden = !pending;
+        if (pending) {
+            document.getElementById('modelNoticeSize').textContent = megabytes(whisperModel.total);
+            const detail = document.getElementById('modelNoticeDetail');
+            detail.textContent = stalled
+                ? `O download parou em ${percent}%. O Recorder tenta de novo sozinho e continua de onde parou: confira a conexão com a internet.`
+                : `${megabytes(whisperModel.done)} de ${megabytes(whisperModel.total)} MB (${percent}%)`;
+            detail.title = stalled ? whisperModel.error : '';
+        }
+        renderImportButtons();
+        updateRecordStatus();
+    }
+
+    function setWhisperModel(status) {
+        if (!status) return;
+        const wasPending = modelPending();
+        whisperModel = status;
+        renderWhisperModel();
+        if (wasPending && !modelPending()) {
+            showToast('O modelo de transcrição terminou de baixar: já dá para gravar.', 'info');
+        }
+    }
+
     async function checkServicesHealth() {
         try {
             const health = await window.go.backend.App.CheckServices();
@@ -803,9 +862,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const ollamaDown = health.provider === 'ollama' && !health.ollama;
             document.getElementById('useAgyBtn').style.display = ollamaDown && health.agy ? '' : 'none';
             document.getElementById('useClaudeBtn').style.display = ollamaDown && health.claude ? '' : 'none';
+            // Na primeira execução o Whisper só sobe depois de o modelo ser baixado
+            setWhisperModel(health.model);
             if (whisperHealth) {
-                whisperHealth.innerText = health.whisper ? 'OK' : 'Indisponível';
-                whisperHealth.style.color = health.whisper ? 'var(--accent-text)' : 'var(--danger-text)';
+                const downloading = !health.whisper && modelPending();
+                whisperHealth.innerText = health.whisper ? 'OK' : (downloading ? `Baixando o modelo (${modelPercent()}%)` : 'Indisponível');
+                whisperHealth.style.color = health.whisper ? 'var(--accent-text)' : (downloading ? 'var(--muted)' : 'var(--danger-text)');
             }
             document.getElementById('whisperPort').innerText = health.whisper_port;
 
@@ -834,6 +896,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.go.backend.App.GetVersion()
                 .then(version => { document.getElementById('statusVersion').textContent = `Recorder ${version}`; })
                 .catch(e => logError('Erro ao ler a versão do app', e));
+
+            // O andamento do download do modelo de transcrição (a primeira execução)
+            window.runtime.EventsOn('whisper-model', setWhisperModel);
 
             const retryHealthBtn = document.getElementById('retryHealthBtn');
             [['useAgyBtn', 'agy'], ['useClaudeBtn', 'claude']].forEach(([id, provider]) => {
@@ -1133,13 +1198,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // nova, transcrita em segundo plano como uma gravação feita aqui
     const importButtons = [document.getElementById('importAudioBtn'), document.getElementById('welcomeImportAudioBtn')];
 
+    // Um áudio de cada vez, e só com o modelo de transcrição já baixado
+    function renderImportButtons() {
+        importButtons.forEach(btn => { btn.disabled = importing || modelPending(); });
+    }
+
     const handleImportAudio = async () => {
         if (isRecording) {
             alert('Pare a gravação antes de importar um áudio.');
             return;
         }
         importing = true;
-        importButtons.forEach(btn => { btn.disabled = true; });
+        renderImportButtons();
         updateRecordStatus();
         try {
             const session = await window.go.backend.App.ImportAudio(currentWorkspaceID);
@@ -1163,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Erro ao importar o áudio: ' + e);
         } finally {
             importing = false;
-            importButtons.forEach(btn => { btn.disabled = false; });
+            renderImportButtons();
             updateRecordStatus();
         }
     };
