@@ -1,0 +1,201 @@
+# Desenvolvimento
+
+- [Rodar sem tocar nos seus dados](#rodar-sem-tocar-nos-seus-dados)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Testes](#testes)
+- [Portas e processos](#portas-e-processos)
+- [Banco de dados e migrações](#banco-de-dados-e-migrações)
+- [Bindings do Wails](#bindings-do-wails)
+- [Interface](#interface)
+- [Empacotamento](#empacotamento)
+- [Commits, ramos e versões](#commits-ramos-e-versões)
+
+## Rodar sem tocar nos seus dados
+
+```sh
+brew install whisper-cpp                    # o whisper-server usado fora do pacote
+make model                                  # o modelo do Whisper, na pasta do projeto
+RECORDER_HOME=~/.recorder-teste make dev  # wails dev numa pasta de dados à parte
+```
+
+A variável `RECORDER_HOME` troca a pasta de dados, que por padrão é
+`~/.recorder`. Sem ela, o app aberto pelo `make dev` usa as suas reuniões de
+verdade — e aplica nelas qualquer migração nova do banco. Use uma pasta sua,
+e não uma de nome previsível em `/tmp`: o app executa o Python do ambiente de
+voz que encontrar lá dentro.
+
+Fora do pacote, o app procura o `whisper-server` do Homebrew
+(`/opt/homebrew/bin` ou `/usr/local/bin`) e o modelo na pasta em que foi
+aberto.
+
+## Estrutura do projeto
+
+```
+recorder/
+├── main.go        a entrada: embute a interface e escolhe o modo (janela ou terminal)
+├── frontend/      a interface: HTML, CSS e JavaScript puros
+├── internal/      o código do app
+│   ├── backend/   o aplicativo: liga as peças e atende a interface
+│   └── …          uma pasta por assunto (áudio, transcrição, vozes, IA…)
+├── build/         ícone e arquivos de pacote do macOS e do Windows
+├── scripts/       geram os pacotes para distribuir
+└── docs/          estes guias
+```
+
+Na raiz ficam só a entrada e os arquivos do projeto (`go.mod`, `wails.json`,
+`Makefile`, licença). O que os builds geram sai em `build/bin/`, fora do git.
+
+**`internal/backend/`**, o aplicativo:
+
+| Arquivo | O que é |
+|---|---|
+| `run.go` | Os três modos de execução (a janela, pelo Wails, e os dois de terminal) e a montagem das peças |
+| `app.go` | Métodos chamados pela interface: sessões, gravação, resumo, chat, configurações |
+| `recorder.go` | A gravação: o pedido da tela (gravar/parar), o laço que grava em blocos e a fila que os transcreve, com novas tentativas se o Whisper cair |
+| `workspaces.go` | Workspaces: criar, renomear, apagar, mover reuniões entre eles |
+| `notes.go` | Notas da reunião e capturas de tela guardadas com ela |
+| `export.go` | Exportação de cada aba em Markdown |
+| `llm.go` | Escolha da IA do assistente (Ollama, agy ou Claude) |
+| `interpreter.go` | Liga o Intérprete (microfone virtual, Whisper próprio, voz e atalho) e grava a amostra da voz |
+| `status.go` | O aviso de trabalho em segundo plano que a tela mostra |
+| `fileserver.go` | Servidor local que entrega o áudio e as capturas à janela |
+| `csp.go` | Política de conteúdo da janela |
+| `logfile.go` | O log em arquivo |
+| `version.go` | A versão do app |
+| `bindings_on.go`, `bindings_off.go` | Dizem ao app quando ele está sendo executado só para gerar os bindings |
+
+**Os outros pacotes de `internal/`**, que não dependem da janela:
+
+| Pacote | O que é |
+|---|---|
+| `datadir` | Onde ficam os dados do app (`~/.recorder`, ou a pasta de `RECORDER_HOME`) |
+| `storage` | Persistência em SQLite e as migrações do esquema |
+| `audio` | Captura do microfone e do áudio do computador, cancelamento de eco, cortes nas pausas da fala e o arquivo de áudio de cada sessão |
+| `transcriber` | Cliente HTTP do `whisper-server` e o processo dele: subir, subir de novo se cair e encerrar servidores órfãos |
+| `diarization` | Identificação de quem fala com o sherpa-onnx, e o download dos modelos |
+| `roster` | Lista de participantes do workspace e comparação de nomes escritos de jeitos diferentes |
+| `speakers` | Vozes de cada sessão, nomes dados a elas e vozes conhecidas de cada workspace |
+| `transcript` | Transcrição de um bloco de áudio: Whisper + quem fala, filtros e vocabulário do Whisper |
+| `chat` | As IAs: cliente do Ollama (respostas em tempo real, formato fixo, busca e download de modelos) e dos CLIs na nuvem (`cli.go`, `agy.go`, `claude.go`); `claude_session.go` mantém um `claude` aberto para a correção do Intérprete |
+| `assistant` | Resumo, tarefas, nomes tirados da conversa e chat com busca |
+| `interpreter` | O Intérprete: roteador do microfone (`router.go`, `mixer.go`), frases pelas pausas (`segment.go`), Whisper, correção da tradução (`corrector.go`) e o servidor de voz em Python (`voice_server.py`, embutido no app) |
+| `mac` | Badge do Dock e os atalhos globais (⌃⌥Espaço do Intérprete e ⌃⌥S da captura de tela) |
+| `screen` | Captura de tela (o `screencapture` do macOS) e miniaturas das capturas |
+
+## Testes
+
+```sh
+make check   # gofmt, go vet e os testes
+make race    # os testes com o detector de corrida de dados
+make lint    # staticcheck
+```
+
+Os testes não usam microfone, Whisper, Ollama nem a sua pasta de dados: a
+gravação recebe um microfone de mentira, o Whisper e as IAs são servidores e
+programas falsos, e cada teste abre o banco numa pasta temporária.
+
+Alguns só rodam a pedido, porque mexem em dispositivos de verdade:
+
+| Variável | O que libera |
+|---|---|
+| `RECORDER_DEVICE_TESTS=1` | Testes do roteador do Intérprete, que abrem o microfone e precisam do BlackHole |
+| `RECORDER_SCREEN_TEST=1` | `go test ./internal/screen -run TestCapturesTheScreen`: fotografa a tela (pede a permissão de gravação de tela para o terminal) |
+
+## Portas e processos
+
+Tudo escuta só em `127.0.0.1`.
+
+| Porta | Quem | Quando |
+|---|---|---|
+| 47823 | `whisper-server` das reuniões | Sempre que o app está aberto |
+| 47824 | Servidor de voz do Intérprete (Python) | Com o Intérprete ligado |
+| 47825 | `whisper-server` do Intérprete | Com o Intérprete ligado |
+| aleatória | Servidor de arquivos do app (`internal/backend/fileserver.go`): áudio das reuniões e capturas de tela, para a interface; o endereço leva um segredo sorteado a cada abertura | Sempre que o app está aberto |
+| 11434 | Ollama (não é do Recorder) | Se instalado |
+
+As portas ficam longe das comuns de desenvolvimento de propósito: na 8080, um
+servidor de outro programa recebia as transcrições e respondia 404. O endereço
+é `127.0.0.1`, e não `localhost`: o `whisper-server` só escuta em IPv4, e
+`localhost` vai primeiro para o IPv6, onde outro programa pode estar na mesma
+porta.
+
+## Banco de dados e migrações
+
+O banco é um SQLite em `~/.recorder/transcripts.db`. O esquema tem versão
+(`PRAGMA user_version`), e as mudanças são passos numerados em
+`internal/storage/migrate.go`.
+
+- Ao abrir um banco de versão anterior, o app copia o banco para
+  `~/.recorder/backups/` (ficam as 3 últimas cópias) e só então aplica os
+  passos que faltam.
+- Mudar o esquema é acrescentar um passo no fim de `migrations`. O passo
+  precisa poder rodar de novo sem estragar nada.
+- Um banco criado por uma versão mais nova do app abre com um aviso no log, e
+  a versão dele não volta atrás.
+
+Depois de mexer no esquema, teste a migração numa cópia e rode o app com
+`RECORDER_HOME`.
+
+## Bindings do Wails
+
+A interface chama os métodos públicos do `App` por `window.go.backend.App`,
+que o Wails põe na janela. Para saber quais métodos existem, o `wails dev`, o
+`wails build` e o `wails generate module` **compilam e executam o app** com a
+etiqueta `bindings`. Nessa execução o app não abre o banco, não sobe o
+`whisper-server` e não mexe no microfone (`generatingBindings`, em
+`internal/backend/bindings_on.go`): só lista os métodos.
+
+O Wails também escreve esses métodos em arquivos JavaScript e TypeScript, em
+`build/wailsjs/`. A interface não os usa, e a pasta fica fora do git.
+
+## Interface
+
+`frontend/` não tem dependências a instalar nem etapa de build: `index.html`,
+`style.css` e `app.js`. O que a tela usa de terceiros — o
+[marked](https://marked.js.org), o
+[DOMPurify](https://github.com/cure53/DOMPurify) e a fonte Inter — fica em
+`frontend/vendor/`, em cópias exatas das publicadas, com a origem e o SHA-256
+de cada arquivo em [`frontend/vendor/README.md`](../frontend/vendor/README.md).
+Nada é carregado de CDN: o app funciona sem internet e as versões não mudam
+sozinhas.
+
+O Markdown que vem da IA (resumo e chat) passa por um lugar só,
+`renderMarkdown`, que o converte e limpa o HTML antes de ir para a tela.
+
+A janela é servida com uma política de conteúdo (`internal/backend/csp.go`)
+que só deixa rodar os arquivos `.js` do app: **nada de `<script>` com código
+dentro, de `onclick` no HTML nem de `eval`**. O que ela proíbe para de
+funcionar sem erro na compilação; o teste `TestFrontendFitsThePageCSP` avisa.
+Imagens e áudio só podem vir do próprio app e do servidor local de arquivos.
+O porquê está em [seguranca.md](seguranca.md).
+
+## Empacotamento
+
+O `wails build` sozinho gera um app que só abre na máquina em que foi
+compilado. Os scripts fazem o resto:
+
+- **`scripts/build-macos.sh`** (`make mac`): compila o app; copia o modelo do Whisper
+  para `Contents/Resources` e as bibliotecas do sherpa-onnx para
+  `Contents/Frameworks`; baixa o código do whisper.cpp (conferido por SHA-256)
+  e compila o `whisper-server` estático, com Metal embutido e sem instruções
+  exclusivas do processador da máquina; copia os avisos de licença; assina o
+  pacote localmente (ad hoc) e gera o `build/bin/Recorder.dmg`.
+- **`scripts/build-windows.sh`** (`make windows`): veja [windows.md](windows.md).
+
+Cada script apaga só o que ele mesmo gera, então os pacotes das duas
+plataformas convivem em `build/bin/`. Os dois chamam o `scripts/licencas.sh`,
+que põe dentro do pacote os avisos de licença de tudo o que vai nele (veja o
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)).
+
+## Commits, ramos e versões
+
+As mensagens seguem "área: descrição", em português, com um corpo que explica
+o porquê. Cada commit deve compilar e passar no `make check` sozinho.
+
+- **Ramos:** `main` é a última versão publicada; o trabalho do dia a dia
+  entra em `develop`. A correção de algo já publicado sai de `main`, num ramo
+  `hotfix/<versão>`, e volta para os dois.
+- **Versão:** fica em `internal/backend/version.go` (o que o "Sobre" mostra)
+  e no `productVersion` do `wails.json` (o que vai no pacote); o teste
+  `TestVersionMatchesThePackage` confere que os dois são iguais.
+- **Tags:** o número da versão, sem prefixo (`1.0.0`).
