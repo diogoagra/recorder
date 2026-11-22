@@ -1,0 +1,13 @@
+# binários e artefatos de build (o app, o .dmg e o .zip saem em build/bin)
+/build/bin/
+/recorder
+# gerado pelo Wails a cada build, a partir dos métodos do App
+/build/wailsjs/
+*.log
+.DS_Store
+
+# Modelo do Whisper (539 MB): não vai para o git. Baixe com `make model`.
+/ggml-*.bin
+
+# backup do estado anterior à reescrita do histórico
+/_backup/

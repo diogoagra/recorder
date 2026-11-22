@@ -1,0 +1,18 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Recorder",
+  "outputfilename": "Recorder",
+  "frontend:dir": "frontend",
+  "wailsjsdir": "./build/wailsjs",
+  "author": {
+    "name": "Diogo Agra",
+    "email": "diogoagra@gmail.com"
+  },
+  "info": {
+    "productName": "Recorder",
+    "productVersion": "1.0.0",
+    "companyName": "Diogo Agra",
+    "copyright": "Copyright © 2026 Diogo Agra",
+    "comments": "Desenvolvido por Diogo Agra - https://diogoagra.dev"
+  }
+}
