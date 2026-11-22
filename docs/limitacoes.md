@@ -18,6 +18,10 @@ privacidade estão em [seguranca.md](seguranca.md#limites-conhecidos).
 
 ## Transcrição
 
+- **A primeira abertura precisa de internet:** o modelo de transcrição (539
+  MB) é baixado uma vez, e até terminar não dá para gravar. Num computador
+  sem conexão, o arquivo pode ser copiado à mão
+  ([primeira abertura](uso.md#primeira-abertura)).
 - O Whisper inventa frases sobre silêncio e ruído ("Obrigado por assistir!").
   O Recorder descarta os trechos em que o detector de voz não ouviu ninguém,
   mas uma ou outra frase inventada ainda pode passar.

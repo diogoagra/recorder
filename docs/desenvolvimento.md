@@ -14,7 +14,7 @@
 
 ```sh
 brew install whisper-cpp                    # o whisper-server usado fora do pacote
-make model                                  # o modelo do Whisper, na pasta do projeto
+make model                                  # o modelo do Whisper, na pasta do projeto (opcional)
 RECORDER_HOME=~/.recorder-teste make dev  # wails dev numa pasta de dados à parte
 ```
 
@@ -25,8 +25,11 @@ e não uma de nome previsível em `/tmp`: o app executa o Python do ambiente de
 voz que encontrar lá dentro.
 
 Fora do pacote, o app procura o `whisper-server` do Homebrew
-(`/opt/homebrew/bin` ou `/usr/local/bin`) e o modelo na pasta em que foi
-aberto.
+(`/opt/homebrew/bin` ou `/usr/local/bin`). O modelo do Whisper ele procura
+primeiro na pasta em que foi aberto, que é onde o `make model` o deixa; se
+não estiver lá, baixa para `models/` dentro da pasta de dados em uso, uma vez
+para cada pasta. Com o `make model`, uma pasta de dados nova não baixa 539 MB
+de novo.
 
 ## Estrutura do projeto
 
@@ -71,7 +74,7 @@ Na raiz ficam só a entrada e os arquivos do projeto (`go.mod`, `wails.json`,
 | `datadir` | Onde ficam os dados do app (`~/.recorder`, ou a pasta de `RECORDER_HOME`) |
 | `storage` | Persistência em SQLite e as migrações do esquema |
 | `audio` | Captura do microfone e do áudio do computador, cancelamento de eco, cortes nas pausas da fala e o arquivo de áudio de cada sessão |
-| `transcriber` | Cliente HTTP do `whisper-server` e o processo dele: subir, subir de novo se cair e encerrar servidores órfãos |
+| `transcriber` | Cliente HTTP do `whisper-server` e o processo dele: subir, subir de novo se cair e encerrar servidores órfãos; e o modelo do Whisper, baixado na primeira abertura (`model.go`) |
 | `diarization` | Identificação de quem fala com o sherpa-onnx, e o download dos modelos |
 | `roster` | Lista de participantes do workspace e comparação de nomes escritos de jeitos diferentes |
 | `speakers` | Vozes de cada sessão, nomes dados a elas e vozes conhecidas de cada workspace |
@@ -94,12 +97,15 @@ Os testes não usam microfone, Whisper, Ollama nem a sua pasta de dados: a
 gravação recebe um microfone de mentira, o Whisper e as IAs são servidores e
 programas falsos, e cada teste abre o banco numa pasta temporária.
 
-Alguns só rodam a pedido, porque mexem em dispositivos de verdade:
+Alguns só rodam a pedido, porque mexem em dispositivos de verdade ou usam a
+internet:
 
 | Variável | O que libera |
 |---|---|
 | `RECORDER_DEVICE_TESTS=1` | Testes do roteador do Intérprete, que abrem o microfone e precisam do BlackHole |
 | `RECORDER_SCREEN_TEST=1` | `go test ./internal/screen -run TestCapturesTheScreen`: fotografa a tela (pede a permissão de gravação de tela para o terminal) |
+| `RECORDER_MODEL_TEST=1` | `go test ./internal/transcriber -run TestModelAddressesAnswer -v`: os dois endereços do modelo do Whisper respondem com um arquivo do tamanho certo e aceitam continuar um download |
+| `RECORDER_MODEL_DIR=<pasta>` | `go test ./internal/transcriber -run TestDownloadsTheRealModel -v -timeout 30m`: baixa o modelo de verdade (539 MB) para a pasta, conferido, como na primeira abertura |
 
 ## Portas e processos
 
@@ -182,8 +188,8 @@ O porquê está em [seguranca.md](seguranca.md).
 O `wails build` sozinho gera um app que só abre na máquina em que foi
 compilado. Os scripts fazem o resto:
 
-- **`scripts/build-macos.sh`** (`make mac`): compila o app; copia o modelo do Whisper
-  para `Contents/Resources` e as bibliotecas do sherpa-onnx para
+- **`scripts/build-macos.sh`** (`make mac`): compila o app; copia as
+  bibliotecas do sherpa-onnx para
   `Contents/Frameworks`; baixa o código do whisper.cpp (conferido por SHA-256)
   e compila o `whisper-server` estático, com Metal embutido e sem instruções
   exclusivas do processador da máquina; copia os avisos de licença; assina o
@@ -194,6 +200,41 @@ Cada script apaga só o que ele mesmo gera, então os pacotes das duas
 plataformas convivem em `build/bin/`. Os dois chamam o `scripts/licencas.sh`,
 que põe dentro do pacote os avisos de licença de tudo o que vai nele (veja o
 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)).
+
+### O modelo do Whisper fica fora do pacote
+
+O modelo (`ggml-medium-q5_0.bin`, 539 MB) era quase todo o tamanho do pacote.
+Desde a 1.2.0 ele não vai mais junto: na primeira abertura o app o baixa para
+`models/`, na pasta de dados, e as versões seguintes usam o mesmo arquivo.
+
+- **O quê e de onde:** `DefaultModel`, em `internal/transcriber/model.go`, tem
+  o nome, o tamanho, o SHA-256 e os endereços, em ordem: o arquivo do projeto
+  whisper.cpp no Hugging Face, numa revisão fixa do repositório, e uma cópia
+  anexada ao Release 1.2.0 do Recorder, usada se o primeiro falhar. O
+  `Makefile` (`make model`) repete nome, endereço e SHA-256;
+  `TestDefaultModelMatchesTheMakefile` confere.
+- **Como:** o download vai para um arquivo `.part`, continua de onde parou se
+  a conexão cair ou o app for fechado, e só ganha o nome final depois de
+  conferido pelo SHA-256. Sem conexão, o app tenta de novo sozinho. Duas
+  instâncias abertas não baixam ao mesmo tempo: a segunda espera a primeira.
+- **Enquanto baixa:** o `whisper-server` não sobe (o supervisor espera o
+  modelo), a tela abre e mostra o andamento (`CheckServices` não acusa a falta
+  do Whisper, e o evento `whisper-model` leva o progresso), e o que depende da
+  transcrição é recusado com um aviso: gravar, importar, reprocessar e o
+  Intérprete (`internal/backend/model.go`).
+- **Onde o app procura antes de baixar:** a pasta em que foi aberto, o pacote
+  (`Contents/Resources` no macOS, ao lado do `Recorder.exe` no Windows) e a
+  pasta de dados. Um arquivo só serve com o tamanho exato. Para montar um
+  pacote que funcione sem internet, basta copiar o modelo para dentro dele
+  antes de assinar.
+- **Ao trocar de modelo:** mudar `DefaultModel` e o `Makefile` juntos e anexar
+  o arquivo novo ao Release cujo endereço for para o código. A cópia do
+  Release 1.2.0 precisa continuar lá enquanto houver versões apontando para
+  ela.
+
+Dois testes conferem os endereços e o download de verdade, pela internet, e
+só rodam a pedido: veja [Testes](#testes). Vale rodar o primeiro depois de
+publicar um Release com o modelo anexado.
 
 ## Commits, ramos e versões
 

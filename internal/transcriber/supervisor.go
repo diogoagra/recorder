@@ -14,6 +14,9 @@ import (
 type Server struct {
 	start func() (*exec.Cmd, error) // sobe o servidor; nil, nil se já há um atendendo
 	alive func() bool               // há um servidor atendendo (o nosso ou um de fora)
+	// Se definido, o servidor só sobe depois de este canal ser fechado: é o
+	// modelo, que na primeira execução ainda está sendo baixado
+	ready <-chan struct{}
 
 	mu      sync.Mutex
 	cmd     *exec.Cmd
@@ -25,8 +28,8 @@ type Server struct {
 // Tempos do supervisor; variáveis para os testes não esperarem.
 var (
 	// Espera antes de subir de novo um servidor que caiu: dobra a cada queda
-	// seguida, para um servidor que não consegue subir (ex: modelo ausente)
-	// não ficar em laço.
+	// seguida, para um servidor que não consegue subir (ex: a porta ocupada
+	// por outro programa) não ficar em laço.
 	restartDelay    = 2 * time.Second
 	maxRestartDelay = time.Minute
 	// Um servidor que ficou de pé por este tempo zera a espera
@@ -36,22 +39,38 @@ var (
 )
 
 // Supervise sobe o whisper-server com o modelo na porta, sem esperar por ele,
-// e o mantém rodando até Stop.
-func Supervise(modelName, port string) *Server {
-	return supervise(
-		func() (*exec.Cmd, error) { return StartServer(modelName, port) },
+// e o mantém rodando até Stop. Se o modelo ainda está sendo baixado, o
+// servidor sobe quando o download terminar.
+func Supervise(model *ModelFile, port string) *Server {
+	return superviseWhen(
+		model.ready,
+		func() (*exec.Cmd, error) {
+			path, _ := model.Path()
+			return StartServer(path, port)
+		},
 		func() bool { return whisperListening(port) },
 	)
 }
 
 func supervise(start func() (*exec.Cmd, error), alive func() bool) *Server {
-	s := &Server{start: start, alive: alive, stop: make(chan struct{}), done: make(chan struct{})}
+	return superviseWhen(nil, start, alive)
+}
+
+func superviseWhen(ready <-chan struct{}, start func() (*exec.Cmd, error), alive func() bool) *Server {
+	s := &Server{start: start, alive: alive, ready: ready, stop: make(chan struct{}), done: make(chan struct{})}
 	go s.run()
 	return s
 }
 
 func (s *Server) run() {
 	defer close(s.done)
+	if s.ready != nil {
+		select {
+		case <-s.ready:
+		case <-s.stop:
+			return
+		}
+	}
 	delay := restartDelay
 	for {
 		started := time.Now()

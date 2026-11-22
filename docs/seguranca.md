@@ -30,10 +30,12 @@ O app não tem servidor próprio, conta nem telemetria.
 | Intérprete, com a correção pelo Claude Haiku | O texto de cada frase (em português e a tradução) é enviado à Anthropic. Com a correção pelo Ollama ou sem correção, nada sai. |
 | Voz do Intérprete | A amostra da sua voz e a voz gerada ficam no computador. |
 
-Os únicos acessos à internet feitos pelo próprio app são downloads: os modelos
-de identificação de locutores (GitHub do sherpa-onnx), o modelo de busca do
-chat (pelo Ollama) e, para quem instala o Intérprete, o ambiente Python e o
-modelo de voz (PyPI e Hugging Face).
+Os únicos acessos à internet feitos pelo próprio app são downloads: o modelo
+de transcrição do Whisper (Hugging Face ou, se ele falhar, a cópia no GitHub
+do Recorder) e os modelos de identificação de locutores (GitHub do
+sherpa-onnx), na primeira abertura; o modelo de busca do chat (pelo Ollama);
+e, para quem instala o Intérprete, o ambiente Python e o modelo de voz (PyPI e
+Hugging Face). Nesses pedidos vai só o endereço do arquivo: nada das reuniões.
 
 ## De quem o app se defende
 
@@ -153,7 +155,7 @@ navegador também consegue mandar pedidos a ela.
 | O quê | Conferência |
 |---|---|
 | Modelos de identificação de locutores | HTTPS e SHA-256 fixo no código; gravados num arquivo temporário e só renomeados depois de conferidos |
-| Modelo do Whisper (`make model`) | SHA-256 fixo no `Makefile` |
+| Modelo do Whisper (baixado pelo app na primeira abertura; pelo `make model`, para desenvolver) | Só por HTTPS, de uma revisão fixa do repositório no Hugging Face ou da cópia no Release do Recorder; tamanho e SHA-256 fixos no código (e no `Makefile`); gravado num arquivo `.part` e só renomeado depois de conferido |
 | Código do whisper.cpp (`scripts/build-macos.sh`) e `whisper-server` do Windows (`scripts/build-windows.sh`) | SHA-256 fixo nos scripts |
 | Modelo de voz do Intérprete | Revisão fixa do repositório no Hugging Face: o conteúdo baixado é sempre o mesmo |
 | Bibliotecas da tela (`frontend/vendor/`) | No repositório, com origem e SHA-256 |

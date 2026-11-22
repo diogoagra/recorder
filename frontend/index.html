@@ -75,6 +75,8 @@
                         <span id="recordTimer" class="record-timer"></span>
                     </button>
                     <span id="recordingStatusText" class="status-text">Carregando...</span>
+                    <!-- Primeira execução: o download do modelo de transcrição, que não vai no pacote do app -->
+                    <div id="modelProgress" class="model-progress" role="progressbar" aria-label="Download do modelo de transcrição" aria-valuemin="0" aria-valuemax="100" hidden><div class="model-progress-bar"></div></div>
                     <!-- Trabalho da IA em andamento, quando a tela de uma reunião (que tem o aviso no cabeçalho) não está aberta -->
                     <span id="backgroundStatus" class="status-text" hidden></span>
                     <canvas id="audioVisualizer" width="240" height="32" style="display: none;"></canvas>
@@ -133,6 +135,14 @@
                 <svg class="welcome-mark" aria-hidden="true"><use href="#i-mark"></use></svg>
                 <h1>Bem-vindo ao Recorder 👋</h1>
                 <p>O seu assistente de IA local para transcrição e resumos. Crie uma nova sessão para começar a gravar, importe um áudio gravado em outro lugar (como o celular) ou selecione uma sessão no menu lateral.</p>
+
+                <!-- Primeira execução: por que ainda não dá para gravar -->
+                <div id="modelNotice" class="model-notice" hidden>
+                    <strong>Preparando a transcrição</strong>
+                    <span>O Recorder está baixando o modelo de transcrição (<span id="modelNoticeSize">539</span> MB). Acontece uma vez só: depois disso, o áudio é transcrito neste computador, sem internet.</span>
+                    <div class="model-progress" role="progressbar" aria-label="Download do modelo de transcrição" aria-valuemin="0" aria-valuemax="100"><div class="model-progress-bar"></div></div>
+                    <span id="modelNoticeDetail" class="model-notice-detail"></span>
+                </div>
 
                 <div class="welcome-actions">
                     <button id="welcomeNewSessionBtn" class="primary-btn welcome-btn">
@@ -411,7 +421,7 @@
          configurações) e a versão do app (app.js, renderStatusBar) -->
     <footer class="statusbar">
         <div class="status-services">
-            <span class="status-item">Transcrição: Whisper, neste computador</span>
+            <span id="statusWhisper" class="status-item">Transcrição: Whisper, neste computador</span>
             <span id="statusLLM" class="status-item" hidden></span>
         </div>
         <span id="statusVersion" class="status-version"></span>
