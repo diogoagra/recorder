@@ -59,6 +59,9 @@
 - **Cancelamento de eco** para quem ouve a reunião pelos alto-falantes.
 - Se a transcrição cair no meio da reunião, o áudio continua sendo gravado e
   os blocos esperam; fechando o app, o trabalho é retomado na próxima abertura.
+- O modelo de transcrição (539 MB) não vai no pacote do app: ele é **baixado
+  uma vez, na primeira abertura**, com o andamento na tela, e serve para as
+  versões seguintes. Depois disso a transcrição não usa a internet.
 - **Importa áudio** gravado em outro lugar (m4a do iPhone, mp3, wav, áudios do
   WhatsApp, vídeos mp4/mov…) e o trata como uma reunião gravada no app.
 
@@ -131,7 +134,7 @@
 | Resumo, tarefas, nomes e chat com o **Ollama** | Ficam no computador. |
 | Resumo, tarefas, nomes e chat com **agy** ou **Claude** | O **texto** das reuniões é enviado ao serviço do modelo escolhido. O áudio não. |
 | Intérprete com a correção pelo Claude Haiku | O texto de cada frase traduzida é enviado à Anthropic. Dá para escolher a correção local ou nenhuma. |
-| Downloads feitos pelo app | Modelos de identificação de locutores (GitHub do sherpa-onnx), modelo de busca do chat (pelo Ollama) e, para o Intérprete, o modelo de voz (Hugging Face). |
+| Downloads feitos pelo app | Modelo de transcrição do Whisper (Hugging Face; se ele falhar, a cópia no GitHub do Recorder), modelos de identificação de locutores (GitHub do sherpa-onnx), modelo de busca do chat (pelo Ollama) e, para o Intérprete, o modelo de voz (Hugging Face). |
 
 O app não tem telemetria nem servidor próprio. A IA em uso fica sempre à vista
 na barra de status, com destaque quando é uma da nuvem. Os detalhes, e o que
@@ -160,11 +163,13 @@ O que ainda funciona com ressalvas está em
 | Xcode Command Line Tools | — | Compilador C/Objective-C (macOS) |
 | `cmake` | — | Compilar o `whisper-server` que vai dentro do app |
 | [Ollama](https://ollama.com) | — | IA local (dispensável para quem usa só `agy` ou `claude`) |
-| Modelo do Whisper | `ggml-medium-q5_0.bin` (539 MB) | Transcrição; baixado pelo `make model` |
+| Modelo do Whisper | `ggml-medium-q5_0.bin` (539 MB) | Transcrição; o app baixa sozinho na primeira abertura |
 | `whisper-cpp` (Homebrew) | opcional | Só para rodar com `make dev` |
 
-As bibliotecas de identificação de locutores vêm com as dependências do Go, e
-os modelos delas (~45 MB) são baixados pelo app na primeira abertura.
+As bibliotecas de identificação de locutores vêm com as dependências do Go.
+Os modelos (o do Whisper e os de identificação de locutores, ~45 MB) não vão
+no pacote: o app os baixa para `~/.recorder/models/` na primeira abertura,
+conferidos por SHA-256.
 
 ### macOS
 
@@ -178,14 +183,15 @@ go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
 ollama pull llama3.1
 
 # 3. dentro da pasta do projeto
-make model   # baixa o modelo do Whisper (539 MB), conferido por SHA-256
 make mac     # gera build/bin/Recorder.app e build/bin/Recorder.dmg
 ```
 
 O `make mac` compila o app, compila o `whisper-server` (com Metal, sem
-depender do Homebrew) e põe dentro do pacote o modelo do Whisper e as
-bibliotecas de identificação de locutores. O resultado roda em outros Macs
-sem instalar mais nada além do Ollama.
+depender do Homebrew) e põe dentro do pacote as bibliotecas de identificação
+de locutores. O resultado roda em outros Macs sem instalar mais nada além do
+Ollama: na primeira abertura, o app baixa o modelo do Whisper (539 MB) e
+mostra o andamento; até terminar, dá para ler as reuniões que já existem, mas
+não para gravar ([primeira abertura](docs/uso.md#primeira-abertura)).
 
 Na primeira gravação o macOS pede a permissão do microfone e a de gravação do
 áudio do sistema; na primeira captura de tela, a de gravação de tela. O app
@@ -199,13 +205,13 @@ O caminho testado é a compilação cruzada a partir do macOS:
 
 ```sh
 brew install mingw-w64   # compilador C para Windows
-make model
 make windows             # gera build/bin/Recorder_Windows.zip
 ```
 
 O pacote leva o `Recorder.exe`, o `whisper-server` oficial do whisper.cpp
-(baixado e conferido por SHA-256), as bibliotecas de identificação de
-locutores e o modelo. No Windows é preciso ter o Ollama instalado e o
+(baixado e conferido por SHA-256) e as bibliotecas de identificação de
+locutores; o modelo do Whisper é baixado pelo app na primeira abertura, como
+no Mac. No Windows é preciso ter o Ollama instalado e o
 [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 Mais em [docs/windows.md](docs/windows.md).
 
@@ -213,7 +219,7 @@ Mais em [docs/windows.md](docs/windows.md).
 
 | Comando | O que faz |
 |---|---|
-| `make model` | Baixa o modelo do Whisper para a pasta do projeto |
+| `make model` | Baixa o modelo do Whisper para a pasta do projeto (opcional: serve para desenvolver sem baixá-lo de novo a cada pasta de dados) |
 | `make dev` | Modo desenvolvimento: recompila e recarrega a tela ao salvar |
 | `make mac` | Gera `build/bin/Recorder.app` e `build/bin/Recorder.dmg` |
 | `make windows` | Gera `build/bin/Recorder_Windows.zip` |

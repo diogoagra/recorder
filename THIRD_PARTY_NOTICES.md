@@ -40,7 +40,6 @@ O `scripts/build-macos.sh` e o `scripts/build-windows.sh` põem no pacote, além
 | Componente | Origem | Licença |
 |---|---|---|
 | `whisper-server`, do [whisper.cpp](https://github.com/ggml-org/whisper.cpp) 1.9.4 | macOS: compilado do código-fonte; Windows: o binário oficial | MIT |
-| Modelo do Whisper `ggml-medium-q5_0.bin` (pesos do [Whisper](https://github.com/openai/whisper), da OpenAI, convertidos pelo projeto whisper.cpp) | [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp), pelo `make model` | MIT |
 | Bibliotecas do sherpa-onnx e do ONNX Runtime | Dependências do Go | Apache 2.0 / MIT |
 
 Essas licenças pedem que o aviso de direitos autorais acompanhe as
@@ -56,6 +55,7 @@ cópia que a compilação usou.
 
 | Componente | Quando | Licença |
 |---|---|---|
+| Modelo do Whisper `ggml-medium-q5_0.bin` (pesos do [Whisper](https://github.com/openai/whisper), da OpenAI, convertidos pelo projeto whisper.cpp), do [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp) ou da cópia anexada ao Release 1.2.0 do Recorder | Na primeira abertura | MIT |
 | [pyannote segmentation 3.0](https://huggingface.co/pyannote/segmentation-3.0), convertido pelo sherpa-onnx | Na primeira abertura | MIT |
 | [3D-Speaker](https://github.com/modelscope/3D-Speaker) ERes2Net (`speech_eres2net_base_sv_zh-cn_3dspeaker_16k`) | Na primeira abertura | Apache 2.0 |
 | [EmbeddingGemma](https://huggingface.co/google/embeddinggemma-300m), pelo Ollama | Na primeira pergunta do chat | Termos de uso do Gemma (Google) |
