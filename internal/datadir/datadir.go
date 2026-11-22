@@ -51,7 +51,8 @@ func SessionsAudio() string { return Path("sessions_audio") }
 // andamento e os blocos esperando transcrição.
 func TmpAudio() string { return Path("tmp_audio") }
 
-// Models é a pasta dos modelos de identificação de locutores.
+// Models é a pasta dos modelos que o app baixa na primeira execução: o do
+// Whisper e os de identificação de locutores.
 func Models() string { return Path("models") }
 
 // Screenshots é a pasta das capturas de tela, com uma pasta por sessão.

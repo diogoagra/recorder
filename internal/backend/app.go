@@ -9,6 +9,7 @@
 //   - recorder.go: a gravação em blocos e a fila que os transcreve;
 //   - workspaces.go, notes.go, export.go, llm.go, interpreter.go, status.go:
 //     o resto do que a interface faz;
+//   - model.go: o que espera o modelo do Whisper, baixado na primeira execução;
 //   - fileserver.go e csp.go: o que a janela pode buscar e executar.
 //
 // A interface (HTML, CSS e JavaScript) fica em frontend/, na raiz do projeto,
@@ -78,6 +79,9 @@ type App struct {
 
 	// Endereço do whisper-server; vazio é o do app (transcriber.Endpoint)
 	whisperEndpoint string
+	// O arquivo do modelo do Whisper, baixado na primeira execução (model.go);
+	// nil nos testes, que não sobem o whisper-server
+	model *transcriber.ModelFile
 
 	audioInfoMu    sync.Mutex
 	audioInfoCache map[string]cachedAudioInfo // data e duração de cada áudio de sessão
@@ -191,13 +195,20 @@ func (a *App) CheckServices() map[string]interface{} {
 	claudeFound := chat.FindClaude() != ""
 	llmStatus := map[string]bool{chat.ProviderOllama: ollamaStatus, chat.ProviderAgy: agyFound, chat.ProviderClaude: claudeFound}[provider]
 
+	// Com o modelo do Whisper ainda sendo baixado (a primeira execução), o
+	// whisper-server não tem como estar de pé: isso não é uma falha, e a tela
+	// abre assim mesmo, mostrando o andamento
+	model := a.whisperModelStatus()
+	whisperExpected := model.State == transcriber.ModelReady
+
 	return map[string]interface{}{
 		"provider":     provider,
 		"ollama":       ollamaStatus,
 		"agy":          agyFound,
 		"claude":       claudeFound,
 		"whisper":      whisperStatus,
-		"ok":           llmStatus && whisperStatus,
+		"model":        model,
+		"ok":           llmStatus && (whisperStatus || !whisperExpected),
 		"whisper_port": transcriber.Port,
 	}
 }
@@ -369,6 +380,9 @@ func (a *App) ReprocessSession(sessionID string) error {
 	if a.recorder().Recording(sessionID) {
 		return fmt.Errorf("pare a gravação antes de reprocessar a reunião")
 	}
+	if err := a.requireWhisperModel(); err != nil {
+		return fmt.Errorf("%w; a transcrição atual foi mantida", err)
+	}
 	// A transcrição atual é apagada antes de a nova começar: sem o Whisper
 	// pronto, a sessão ficaria sem nenhuma, e sem os nomes dados às vozes
 	if !a.whisper().Ready() {
@@ -391,6 +405,10 @@ const importPattern = "*.m4a;*.mp3;*.wav;*.aac;*.ogg;*.opus;*.oga;*.flac;*.amr;*
 // gravação feita aqui: identifica quem fala e faz o resumo no fim. Devolve a
 // sessão criada, ou nil se o usuário desistiu.
 func (a *App) ImportAudio(workspaceID string) (*storage.Session, error) {
+	// Sem o modelo, o áudio importado ficaria numa reunião sem transcrição
+	if err := a.requireWhisperModel(); err != nil {
+		return nil, err
+	}
 	path, err := runtime.OpenFileDialog(a.wailsCtx(), runtime.OpenDialogOptions{
 		Title:   "Importar áudio",
 		Filters: []runtime.FileFilter{{DisplayName: "Áudio e vídeo", Pattern: importPattern}},
@@ -652,6 +670,9 @@ func (a *App) IsBackendReady() bool {
 func (a *App) StartRecording(sessionID string) (map[string]interface{}, error) {
 	if !a.store.SessionExists(sessionID) {
 		return a.GetStatus(), fmt.Errorf("reunião não encontrada")
+	}
+	if err := a.requireWhisperModel(); err != nil {
+		return a.GetStatus(), err
 	}
 	// A gravação continua de onde o áudio da sessão parou: as capturas de
 	// tela guardam o momento da reunião a partir dali

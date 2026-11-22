@@ -8,6 +8,7 @@ import (
 	"os"
 	stdruntime "runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"recorder/internal/assistant"
@@ -43,9 +44,6 @@ func appMenu() *menu.Menu {
 	return menu.NewMenuFromItems(menu.AppMenu(), menu.EditMenu())
 }
 
-// Modelo do Whisper que vai dentro do app (scripts/build-macos.sh).
-const whisperModel = "ggml-medium-q5_0.bin"
-
 // RunWindow abre o app: a janela, com a interface de assets (a pasta frontend
 // embutida no executável) e o ícone do "Sobre", mais a gravação e a
 // transcrição em segundo plano. Só retorna quando o app fecha.
@@ -70,13 +68,24 @@ func RunWindow(assets fs.FS, appIcon []byte) {
 	logToFile(appDataDir)
 	log.Println("Iniciando Wails App...")
 
-	// O whisper-server sobe em segundo plano (a janela não espera por ele; a
-	// tela acompanha por CheckServices) e sobe de novo se cair
-	whisperServer := transcriber.Supervise(whisperModel, transcriber.Port)
+	// O modelo do Whisper não vai no pacote: na primeira execução ele é
+	// baixado para a pasta de dados, em segundo plano (model.go). O app ainda
+	// não existe aqui; ele passa a receber o andamento logo abaixo.
+	var onModel atomic.Pointer[func(transcriber.ModelStatus)]
+	model := transcriber.FetchModel(transcriber.DefaultModel, datadir.Models(), func(status transcriber.ModelStatus) {
+		if notify := onModel.Load(); notify != nil {
+			(*notify)(status)
+		}
+	})
+	// O whisper-server sobe em segundo plano, quando o modelo estiver no disco
+	// (a janela não espera por ele; a tela acompanha por CheckServices), e
+	// sobe de novo se cair
+	whisperServer := transcriber.Supervise(model, transcriber.Port)
 	// O whisper-server do Intérprete só sobe quando ele é ligado: um órfão de
 	// uma execução anterior ficaria ocupando memória até lá
 	go transcriber.KillOrphans(interpreter.WhisperPort)
 	fatal := func(format string, args ...any) {
+		model.Stop()
 		whisperServer.Stop()
 		log.Fatalf(format, args...)
 	}
@@ -92,6 +101,9 @@ func RunWindow(assets fs.FS, appIcon []byte) {
 	}
 	ollama := chat.NewOllamaClient(chat.DefaultOllamaEndpoint, savedModel)
 	app := NewApp(store, ollama)
+	app.model = model
+	notifyModel := app.broadcastWhisperModel
+	onModel.Store(&notifyModel)
 	app.diarizer = diarization.Load(datadir.Models())
 
 	levelChan := make(chan float64, 5)
@@ -157,7 +169,9 @@ func RunWindow(assets fs.FS, appIcon []byte) {
 		},
 	})
 
-	// Encerrar o whisper-server quando o Wails fechar
+	// Encerrar o whisper-server quando o Wails fechar. Um download do modelo
+	// pela metade continua de onde parou na próxima vez.
+	model.Stop()
 	whisperServer.Stop()
 	if err != nil {
 		log.Fatalf("Erro fatal no wails.Run: %v", err)
@@ -197,7 +211,13 @@ func RunDaemon() {
 		log.Printf("Aviso: não foi possível preparar a pasta de dados %s: %v", datadir.Dir(), err)
 	}
 
-	whisperServer := transcriber.Supervise(whisperModel, transcriber.Port)
+	// Sem o modelo neste computador, ele é baixado em segundo plano (o
+	// andamento vai para o log) e a gravação começa assim mesmo: o áudio fica
+	// guardado, e o que a fila da transcrição não conseguir esperar é
+	// transcrito na próxima vez que o app abrir
+	model := transcriber.FetchModel(transcriber.DefaultModel, datadir.Models(), nil)
+	defer model.Stop()
+	whisperServer := transcriber.Supervise(model, transcriber.Port)
 	defer whisperServer.Stop()
 
 	store, err := storage.NewStorage(datadir.DB())

@@ -138,3 +138,40 @@ func TestStopKillsAServerThatIsStillStarting(t *testing.T) {
 	}
 	s.Stop() // duas vezes não quebra
 }
+
+func TestSuperviseStartsTheServerOnlyWhenTheModelIsReady(t *testing.T) {
+	fastSupervisor(t)
+	ready := make(chan struct{})
+	var starts atomic.Int32
+	s := superviseWhen(ready, func() (*exec.Cmd, error) {
+		starts.Add(1)
+		return nil, errors.New("sem servidor neste teste")
+	}, func() bool { return false })
+	defer s.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+	if n := starts.Load(); n != 0 {
+		t.Fatalf("o servidor foi iniciado %d vez(es) sem o modelo", n)
+	}
+	close(ready)
+	waitFor(t, "o servidor ser iniciado depois de o modelo chegar", func() bool { return starts.Load() >= 1 })
+}
+
+// Fechar o app com o modelo ainda sendo baixado não pode ficar esperando.
+func TestStopWhileWaitingForTheModel(t *testing.T) {
+	s := superviseWhen(make(chan struct{}), func() (*exec.Cmd, error) {
+		t.Error("o servidor não deveria ser iniciado sem o modelo")
+		return nil, nil
+	}, func() bool { return false })
+
+	stopped := make(chan struct{})
+	go func() {
+		s.Stop()
+		close(stopped)
+	}()
+	select {
+	case <-stopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("o Stop ficou esperando o modelo")
+	}
+}

@@ -76,7 +76,11 @@ func (a *App) interp() *interp {
 			},
 			// Whisper só do Intérprete: o do app pode estar ocupado com a gravação
 			startWhisper: func() (*exec.Cmd, error) {
-				return transcriber.StartServer("ggml-medium-q5_0.bin", interpreter.WhisperPort)
+				model, err := a.whisperModelPath()
+				if err != nil {
+					return nil, err
+				}
+				return transcriber.StartServer(model, interpreter.WhisperPort)
 			},
 			whisperURL: "http://127.0.0.1:" + interpreter.WhisperPort,
 			virtualMic: func() string {
